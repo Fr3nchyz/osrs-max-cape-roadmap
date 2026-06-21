@@ -18,6 +18,13 @@ import {
   Flag,
 } from "lucide-react";
 import GamePlan from "./GamePlan";
+import {
+  TRAINING_METHODS,
+  methodsFor,
+  afkLabel,
+  ICON_MAP,
+  type Skill,
+} from "./skills";
 
 const USERNAME = "fr3nchy";
 const XP_FOR_99 = 13034431;
@@ -83,156 +90,9 @@ const SKILL_COLORS: Record<string, string> = {
   Overall: "bg-yellow-600",
 };
 
-type Method = { name: string; rate: number; gp: number };
-
-const TRAINING_METHODS: Record<string, Method[]> = {
-  Sailing: [
-    { name: "Shipwreck (Rune Hooks)", rate: 110000, gp: 250000 },
-    { name: "The Gwenith Glide", rate: 200000, gp: -50000 },
-    { name: "Cruising", rate: 50000, gp: 0 },
-  ],
-  Woodcutting: [
-    { name: "Ironwoods (Mid)", rate: 70000, gp: 18000 },
-    { name: "Ironwoods (Focused)", rate: 80000, gp: 20000 },
-    { name: "Ironwoods (Lazy)", rate: 60000, gp: 15000 },
-    { name: "2t Teaks", rate: 180000, gp: -10000 },
-    { name: "Redwoods", rate: 65000, gp: 40000 },
-  ],
-  Fletching: [
-    { name: "Dragon Javelins", rate: 600000, gp: -150000 },
-    { name: "Broad Arrows", rate: 650000, gp: -1200000 },
-    { name: "Stringing Magic Longs", rate: 250000, gp: 150000 },
-    { name: "Darts (Sweaty)", rate: 1500000, gp: -3000000 },
-  ],
-  Smithing: [
-    { name: "Addy Plates (Relaxed)", rate: 215000, gp: 150000 },
-    { name: "Gold Bars (BF/Goldsmith)", rate: 350000, gp: -300000 },
-    { name: "Addy Plates (Sweaty)", rate: 300000, gp: 220000 },
-    { name: "Runite Bars (BF)", rate: 100000, gp: 1600000 },
-    { name: "Giants' Foundry", rate: 200000, gp: 250000 },
-  ],
-  Mining: [
-    { name: "Gemstones (Relaxed)", rate: 55016, gp: 450000 },
-    { name: "Gemstones (Sweaty 3t)", rate: 80408, gp: 675000 },
-    { name: "3t4g Granite", rate: 120000, gp: -20000 },
-    { name: "Volcanic Mine", rate: 85000, gp: 100000 },
-    { name: "MLM (High Level)", rate: 54000, gp: 250000 },
-  ],
-  Herblore: [
-    { name: "Cost Efficient Pots", rate: 250000, gp: -1200000 },
-    { name: "Super Combats", rate: 320000, gp: -1800000 },
-    { name: "Prayer Potions", rate: 220000, gp: -800000 },
-    { name: "Aldarin Mixology", rate: 180000, gp: 300000 },
-    { name: "Sara Brews", rate: 350000, gp: -4500000 },
-  ],
-  Hunter: [
-    { name: "Quetzal Rumours", rate: 150000, gp: 800000 },
-    { name: "Red Chins", rate: 160000, gp: 800000 },
-    { name: "Rainbow Crabs", rate: 90000, gp: 100000 },
-    { name: "Mechanical Monkeys", rate: 100000, gp: 0 },
-    { name: "Black Chins", rate: 200000, gp: 1800000 },
-    { name: "Herbiboar", rate: 150000, gp: 400000 },
-  ],
-  Construction: [
-    { name: "Mahogany Tables", rate: 900000, gp: -14000000 },
-    { name: "Oak Dungeon Doors", rate: 450000, gp: -4000000 },
-  ],
-  Agility: [
-    { name: "Sepulchre", rate: 90000, gp: 2500000 },
-    { name: "Ardougne Rooftop", rate: 62000, gp: 350000 },
-  ],
-  Thieving: [
-    { name: "Pickpocketing Elves", rate: 450000, gp: 2800000 },
-    { name: "Ardy Knights", rate: 250000, gp: 300000 },
-  ],
-  Crafting: [
-    { name: "Cutting Diamonds", rate: 400000, gp: -1500000 },
-    { name: "Black D'hide Bodies", rate: 350000, gp: -2500000 },
-  ],
-  Runecraft: [
-    { name: "Lavas (Sweaty)", rate: 100000, gp: -100000 },
-    { name: "GotR", rate: 60000, gp: 150000 },
-    { name: "ZMI", rate: 45000, gp: 100000 },
-  ],
-  Fishing: [
-    { name: "Barbarian Fishing", rate: 110000, gp: 0 },
-    { name: "Tempoross", rate: 80000, gp: 150000 },
-    { name: "Anglers", rate: 30000, gp: 350000 },
-  ],
-  Cooking: [
-    { name: "1t Karambwans", rate: 900000, gp: -200000 },
-    { name: "Sharks", rate: 300000, gp: 100000 },
-  ],
-  Firemaking: [
-    { name: "Redwood Logs", rate: 450000, gp: -250000 },
-    { name: "Wintertodt", rate: 280000, gp: 150000 },
-  ],
-  Farming: [
-    { name: "Tree Runs", rate: 1000000, gp: -1500000 },
-    { name: "Tithe Farm", rate: 100000, gp: 0 },
-  ],
-  Attack: [{ name: "Slayer/Combat", rate: 80000, gp: 100000 }],
-  Strength: [{ name: "Slayer/Combat", rate: 80000, gp: 100000 }],
-  Defence: [{ name: "Slayer/Combat", rate: 80000, gp: 100000 }],
-  Hitpoints: [{ name: "Passive", rate: 25000, gp: 0 }],
-  Ranged: [
-    { name: "Chinchompas", rate: 500000, gp: -1500000 },
-    { name: "NMZ", rate: 80000, gp: -50000 },
-  ],
-  Magic: [
-    { name: "Barraging", rate: 250000, gp: -1200000 },
-    { name: "Plank Make", rate: 160000, gp: 150000 },
-  ],
-  Prayer: [
-    { name: "Chaos Altar", rate: 600000, gp: -8000000 },
-    { name: "Ensouled Heads", rate: 300000, gp: -2000000 },
-  ],
-  Slayer: [
-    { name: "Efficient", rate: 60000, gp: -200000 },
-    { name: "Chilled", rate: 30000, gp: 500000 },
-  ],
-};
-
-const ICON_MAP: Record<string, string> = {
-  Attack: "⚔️",
-  Defence: "🛡️",
-  Strength: "💪",
-  Hitpoints: "❤️",
-  Ranged: "🏹",
-  Prayer: "✨",
-  Magic: "🔮",
-  Cooking: "🍳",
-  Woodcutting: "🪓",
-  Fletching: "🏹",
-  Fishing: "🎣",
-  Firemaking: "🔥",
-  Crafting: "✂️",
-  Smithing: "🔨",
-  Mining: "⛏️",
-  Herblore: "🧪",
-  Agility: "🏃",
-  Thieving: "🧤",
-  Slayer: "💀",
-  Farming: "🌱",
-  Runecraft: "🌀",
-  Hunter: "🐾",
-  Construction: "🏠",
-  Sailing: "⛵",
-  Overall: "🏆",
-};
-
 const SkillIcon = ({ name }: { name: string }) => (
   <span className="text-lg mr-2">{ICON_MAP[name] || "❓"}</span>
 );
-
-type Skill = {
-  name: string;
-  rank: number;
-  level: number;
-  xp: number;
-  isMaxed: boolean;
-  remainingXp: number;
-};
 
 type StoredSettings = {
   methods: Record<string, number>;
@@ -358,7 +218,7 @@ export default function App() {
     let totalHours = 0;
     let totalGpChange = 0;
     const breakdown = activeSkills.map((s) => {
-      const methods = TRAINING_METHODS[s.name] || [{ name: "Default", rate: 50000, gp: 0 }];
+      const methods = methodsFor(s.name);
       const selectedIdx = selections[s.name] || 0;
       const method = methods[selectedIdx] || methods[0];
       const hours = s.remainingXp / (method.rate || 50000);
@@ -489,7 +349,7 @@ export default function App() {
           </button>
         </div>
 
-        {tab === "plan" && <GamePlan />}
+        {tab === "plan" && <GamePlan skills={data} />}
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
@@ -691,9 +551,7 @@ export default function App() {
         {/* Skill Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {sortedVisibleSkills.map((skill) => {
-            const methods = TRAINING_METHODS[skill.name] || [
-              { name: "Default", rate: 50000, gp: 0 },
-            ];
+            const methods = methodsFor(skill.name);
             const selectedIdx = selections[skill.name] || 0;
             const selectedMethod = methods[selectedIdx] || methods[0];
             const hoursToMax = skill.remainingXp / selectedMethod.rate;
@@ -821,6 +679,24 @@ export default function App() {
                           {selectedMethod.gp >= 0 ? "+" : ""}
                           {(selectedMethod.gp / 1000).toFixed(0)}k GP/h
                         </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-1">
+                        <span
+                          className={`text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${
+                            selectedMethod.afk <= 2
+                              ? "bg-green-600/15 text-green-500 border-green-700/40"
+                              : selectedMethod.afk === 3
+                              ? "bg-amber-600/15 text-amber-500 border-amber-700/40"
+                              : "bg-red-600/15 text-red-500 border-red-700/40"
+                          }`}
+                        >
+                          {afkLabel(selectedMethod.afk)}
+                        </span>
+                        {selectedMethod.tag && (
+                          <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border bg-yellow-600/15 text-yellow-500 border-yellow-700/40">
+                            {selectedMethod.tag}
+                          </span>
+                        )}
                       </div>
                       <div className="relative">
                         <select

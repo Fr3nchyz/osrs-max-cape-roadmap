@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, ChevronUp, ChevronDown, Flag, Target } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown, Flag, Target, Zap } from "lucide-react";
+import { rankSkillsByAfk, afkLabel, ICON_MAP, type Skill } from "./skills";
 
 const PLAN_KEY = "osrs-plan-fr3nchy";
+
+const goalTitleFor = (skill: string) => `${skill} to 99`;
 
 export type Goal = {
   id: string;
@@ -41,7 +44,7 @@ function save(goals: Goal[]) {
   }
 }
 
-export default function GamePlan() {
+export default function GamePlan({ skills = [] }: { skills?: Skill[] }) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [title, setTitle] = useState("");
   const [target, setTarget] = useState("");
@@ -56,21 +59,34 @@ export default function GamePlan() {
     save(reindexed);
   };
 
+  const pushGoal = (g: Omit<Goal, "id" | "sort">) =>
+    commit([...goals, { ...g, id: crypto.randomUUID(), sort: goals.length }]);
+
   const addGoal = () => {
     const t = title.trim();
     if (!t) return;
-    const g: Goal = {
-      id: crypto.randomUUID(),
-      title: t,
-      target: target.trim(),
-      notes: "",
-      status: "planned",
-      sort: goals.length,
-    };
-    commit([...goals, g]);
+    pushGoal({ title: t, target: target.trim(), notes: "", status: "planned" });
     setTitle("");
     setTarget("");
   };
+
+  // Suggestion queue: unmaxed skills, most-AFK-first, minus ones already on the board.
+  const existingTitles = new Set(
+    goals.filter((g) => g.status !== "done").map((g) => g.title.toLowerCase())
+  );
+  const suggestions = rankSkillsByAfk(skills).filter(
+    (s) => !existingTitles.has(goalTitleFor(s.skill.name).toLowerCase())
+  );
+
+  const addFromSuggestion = (s: ReturnType<typeof rankSkillsByAfk>[number]) =>
+    pushGoal({
+      title: goalTitleFor(s.skill.name),
+      target: "99",
+      notes: `Method: ${s.method.name} · ~${Math.ceil(s.hours)}h · ${afkLabel(
+        s.method.afk
+      )}`,
+      status: "planned",
+    });
 
   const update = (id: string, patch: Partial<Goal>) =>
     commit(goals.map((g) => (g.id === id ? { ...g, ...patch } : g)));
@@ -129,6 +145,60 @@ export default function GamePlan() {
           </button>
         </div>
       </div>
+
+      {/* Suggested next — most AFK first */}
+      {suggestions.length > 0 && (
+        <div className="bg-neutral-900 border border-neutral-800 rounded-[2rem] p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-white uppercase tracking-tighter flex items-center gap-2">
+              <Zap className="w-4 h-4 text-yellow-600" /> Suggested next
+            </h3>
+            <span className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
+              Most AFK first
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {suggestions.map((s) => (
+              <div
+                key={s.skill.name}
+                className="flex items-center gap-3 bg-neutral-950 border border-neutral-800 rounded-2xl px-3 py-2.5"
+              >
+                <span className="text-lg shrink-0">{ICON_MAP[s.skill.name] || "❓"}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-black text-white tracking-tight">
+                      {s.skill.name}
+                    </span>
+                    <span className="text-[10px] font-mono text-neutral-500">
+                      Lv {s.skill.level}
+                    </span>
+                    <span
+                      className={`text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${
+                        s.method.afk <= 2
+                          ? "bg-green-600/15 text-green-500 border-green-700/40"
+                          : s.method.afk === 3
+                          ? "bg-amber-600/15 text-amber-500 border-amber-700/40"
+                          : "bg-red-600/15 text-red-500 border-red-700/40"
+                      }`}
+                    >
+                      {afkLabel(s.method.afk)}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-neutral-500 truncate">
+                    {s.method.name} · ~{Math.ceil(s.hours)}h
+                  </p>
+                </div>
+                <button
+                  onClick={() => addFromSuggestion(s)}
+                  className="flex items-center gap-1 bg-neutral-800 hover:bg-yellow-600 hover:text-white text-neutral-300 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all active:scale-95 shrink-0"
+                >
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Goals */}
       {goals.length === 0 ? (
