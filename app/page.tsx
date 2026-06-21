@@ -16,8 +16,10 @@ import {
   Hourglass,
   LayoutDashboard,
   Flag,
+  ListChecks,
 } from "lucide-react";
 import Planning from "./Planning";
+import FinalPlan from "./FinalPlan";
 import { useGoals } from "./useGoals";
 import {
   TRAINING_METHODS,
@@ -110,7 +112,7 @@ export default function App() {
   const [hoursPerDay, setHoursPerDay] = useState(4);
   const [showMaxed, setShowMaxed] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
-  const [tab, setTab] = useState<"dashboard" | "plan">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "planning" | "final">("dashboard");
   const goalStore = useGoals();
 
   // Load persisted settings (localStorage) once on mount.
@@ -328,30 +330,36 @@ export default function App() {
         </header>
 
         {/* Tab nav */}
-        <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800 w-fit">
-          <button
-            onClick={() => setTab("dashboard")}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-              tab === "dashboard"
-                ? "bg-neutral-800 text-yellow-500 shadow-inner"
-                : "text-neutral-500 hover:text-neutral-300"
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" /> Roadmap
-          </button>
-          <button
-            onClick={() => setTab("plan")}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-              tab === "plan"
-                ? "bg-neutral-800 text-yellow-500 shadow-inner"
-                : "text-neutral-500 hover:text-neutral-300"
-            }`}
-          >
-            <Flag className="w-3.5 h-3.5" /> Game Plan
-          </button>
+        <div className="sticky top-0 z-20 -mx-1 px-1 py-2 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
+          <div className="inline-flex gap-1 bg-neutral-900 border border-neutral-800 rounded-2xl p-1">
+            <button
+              onClick={() => setTab("dashboard")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                tab === "dashboard" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" /> Roadmap
+            </button>
+            <button
+              onClick={() => setTab("planning")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                tab === "planning" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+              }`}
+            >
+              <Flag className="w-4 h-4" /> Planning
+            </button>
+            <button
+              onClick={() => setTab("final")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                tab === "final" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+              }`}
+            >
+              <ListChecks className="w-4 h-4" /> Final plan
+            </button>
+          </div>
         </div>
 
-        {tab === "plan" && (
+        {tab === "planning" && (
           <Planning
             skills={data}
             goals={goalStore.goals}
@@ -359,6 +367,17 @@ export default function App() {
             update={goalStore.update}
             remove={goalStore.remove}
             setStatus={goalStore.setStatus}
+          />
+        )}
+        {tab === "final" && (
+          <FinalPlan
+            skills={data}
+            hoursPerDay={hoursPerDay}
+            goals={goalStore.goals}
+            update={goalStore.update}
+            remove={goalStore.remove}
+            setStatus={goalStore.setStatus}
+            move={goalStore.move}
           />
         )}
 
