@@ -17,9 +17,11 @@ import {
   LayoutDashboard,
   Flag,
   ListChecks,
+  Play,
 } from "lucide-react";
 import Planning from "./Planning";
 import FinalPlan from "./FinalPlan";
+import SessionPlanner from "./SessionPlanner";
 import { useGoals } from "./useGoals";
 import {
   TRAINING_METHODS,
@@ -113,7 +115,7 @@ export default function App() {
   const [hoursPerDay, setHoursPerDay] = useState(4);
   const [showMaxed, setShowMaxed] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
-  const [tab, setTab] = useState<"dashboard" | "planning" | "final">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "planning" | "final" | "session">("dashboard");
   const goalStore = useGoals();
 
   // Load persisted settings (localStorage) once on mount.
@@ -357,6 +359,14 @@ export default function App() {
             >
               <ListChecks className="w-4 h-4" /> Final plan
             </button>
+            <button
+              onClick={() => setTab("session")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                tab === "session" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+              }`}
+            >
+              <Play className="w-4 h-4" /> Session
+            </button>
           </div>
         </div>
 
@@ -380,6 +390,7 @@ export default function App() {
             move={goalStore.move}
           />
         )}
+        {tab === "session" && <SessionPlanner skills={data} />}
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
