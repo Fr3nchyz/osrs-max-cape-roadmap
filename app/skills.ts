@@ -186,6 +186,11 @@ export function rankSkillsByAfk(skills: Skill[]): SkillSuggestion[] {
     .sort((a, b) => a.method.afk - b.method.afk || a.hours - b.hours);
 }
 
+// Hours to max a skill with a given method (rollup + card math share this).
+export function hoursFor(skill: Skill, method: Method): number {
+  return skill.remainingXp / (method.rate || 50000);
+}
+
 export function afkLabel(afk: Afk): string {
   return afk <= 1 ? "AFK" : afk === 2 ? "Light" : afk === 3 ? "Active" : "Sweaty";
 }
