@@ -9,7 +9,6 @@ type Props = {
   skills?: Skill[];
   hoursPerDay: number;
   goals: Goal[];
-  update: (id: string, patch: Partial<Goal>) => void;
   remove: (id: string) => void;
   setStatus: (id: string, status: Goal["status"]) => void;
   move: (id: string, dir: -1 | 1) => void;
@@ -25,7 +24,6 @@ export default function FinalPlan({
   skills = [],
   hoursPerDay,
   goals,
-  update,
   remove,
   setStatus,
   move,

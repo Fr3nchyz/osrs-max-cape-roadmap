@@ -374,7 +374,6 @@ export default function App() {
             skills={data}
             hoursPerDay={hoursPerDay}
             goals={goalStore.goals}
-            update={goalStore.update}
             remove={goalStore.remove}
             setStatus={goalStore.setStatus}
             move={goalStore.move}
@@ -587,7 +586,6 @@ export default function App() {
             const hoursToMax = skill.remainingXp / selectedMethod.rate;
             const revenueAtMax = hoursToMax * selectedMethod.gp;
             const progressTo99 = (skill.xp / XP_FOR_99) * 100;
-            const progressTo92 = (skill.xp / XP_FOR_92) * 100;
 
             return (
               <div
