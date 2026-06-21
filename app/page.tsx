@@ -17,7 +17,8 @@ import {
   LayoutDashboard,
   Flag,
 } from "lucide-react";
-import GamePlan from "./GamePlan";
+import Planning from "./Planning";
+import { useGoals } from "./useGoals";
 import {
   TRAINING_METHODS,
   methodsFor,
@@ -110,6 +111,7 @@ export default function App() {
   const [showMaxed, setShowMaxed] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
   const [tab, setTab] = useState<"dashboard" | "plan">("dashboard");
+  const goalStore = useGoals();
 
   // Load persisted settings (localStorage) once on mount.
   useEffect(() => {
@@ -349,7 +351,16 @@ export default function App() {
           </button>
         </div>
 
-        {tab === "plan" && <GamePlan skills={data} />}
+        {tab === "plan" && (
+          <Planning
+            skills={data}
+            goals={goalStore.goals}
+            add={goalStore.add}
+            update={goalStore.update}
+            remove={goalStore.remove}
+            setStatus={goalStore.setStatus}
+          />
+        )}
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
