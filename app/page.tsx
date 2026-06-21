@@ -697,6 +697,20 @@ export default function App() {
                           {(selectedMethod.gp / 1000).toFixed(0)}k GP/h
                         </span>
                       </div>
+                      {(selectedMethod.xpPerAction || selectedMethod.afkTime) && (
+                        <div className="flex justify-between items-center px-1 text-[10px] font-mono text-neutral-600">
+                          <span>
+                            {selectedMethod.xpPerAction
+                              ? `${selectedMethod.xpPerAction.toLocaleString()} xp/action`
+                              : ""}
+                          </span>
+                          {selectedMethod.afkTime && (
+                            <span className="flex items-center gap-1">
+                              {selectedMethod.afkTime} AFK
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <div className="flex items-center gap-1.5 px-1">
                         <span
                           className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${afkBadgeClass(

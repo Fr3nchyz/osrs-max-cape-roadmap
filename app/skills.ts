@@ -1,10 +1,13 @@
 // Shared training-method data + ranking helpers.
-// Consumed by both the Roadmap dashboard (page.tsx) and the Game Plan tab (GamePlan.tsx).
+// Consumed by both the Roadmap dashboard (page.tsx) and the Game Plan tabs (Planning/FinalPlan).
 //
 // AFK intensity is the master attribute for this account: fr3nchy plays almost entirely on
-// mobile, logging in/out constantly, so "how AFK is it" matters more than raw XP/h.
+// mobile (the iOS app), logging in/out constantly, so "how AFK is it" matters more than raw XP/h.
 //   afk 1 = set-and-forget   2 = light attention   3 = active   4 = sweaty / tick-perfect
 // Within each skill, methods are ordered most-AFK-first, so index 0 is the default pick.
+//
+// Rates/xpPerAction/afkTime for the AFK-skilling methods come from the OSRS wiki's
+// "Guide:AFK Skilling Methods" table (Exp/AFK = xp per AFK cycle).
 
 export type Afk = 1 | 2 | 3 | 4;
 
@@ -14,6 +17,8 @@ export type Method = {
   gp: number; // GP/h (negative = costs money)
   afk: Afk;
   tag?: "meta" | "best" | "great" | "good"; // editorial quality badge
+  xpPerAction?: number; // wiki "Exp/AFK" — xp gained per AFK cycle
+  afkTime?: string; // average AFK duration per cycle, e.g. "0:35"
 };
 
 export type Skill = {
@@ -27,55 +32,55 @@ export type Skill = {
 
 export const TRAINING_METHODS: Record<string, Method[]> = {
   Sailing: [
-    // NOTE: Sailing is brand-new content — these rates/GP are best-guess placeholders.
-    // fr3nchy hasn't researched the meta yet; edit once real numbers are known.
-    { name: "Merchant Salvage (AFK)", rate: 90000, gp: 200000, afk: 2, tag: "meta" },
-    { name: "Shipwreck (Rune Hooks)", rate: 110000, gp: 250000, afk: 2 },
-    { name: "Cruising", rate: 50000, gp: 0, afk: 1 },
-    { name: "The Gwenith Glide", rate: 200000, gp: -50000, afk: 3 },
+    // Real wiki data (was placeholder). fr3nchy is ~88 Sailing -> Merchant shipwreck (req 87) is meta.
+    { name: "Merchant Shipwreck", rate: 85000, gp: 259528, afk: 3, tag: "meta", xpPerAction: 5667, afkTime: "4:00" },
+    { name: "Crewmate-only Salvaging", rate: 30000, gp: 88235, afk: 1, tag: "good", xpPerAction: 15000, afkTime: "30:00" },
+    { name: "Mercenary Shipwreck", rate: 70000, gp: 348618, afk: 3, xpPerAction: 3792, afkTime: "3:15" },
+    { name: "Fremennik Shipwreck", rate: 80000, gp: 254625, afk: 3, xpPerAction: 4844, afkTime: "3:38" },
+    { name: "Pirate Shipwreck", rate: 47000, gp: 232723, afk: 3, xpPerAction: 2063, afkTime: "2:38" },
   ],
   Woodcutting: [
-    { name: "Ironwoods (Lazy)", rate: 60000, gp: 15000, afk: 1, tag: "meta" },
-    { name: "Ironwoods (Mid)", rate: 70000, gp: 18000, afk: 2 },
-    { name: "Redwoods", rate: 65000, gp: 40000, afk: 2, tag: "good" },
-    { name: "Ironwoods (Focused)", rate: 80000, gp: 20000, afk: 3 },
-    { name: "2t Teaks", rate: 180000, gp: -10000, afk: 4 },
+    { name: "Ironwood Tree", rate: 100000, gp: 85544, afk: 2, tag: "meta", xpPerAction: 6667, afkTime: "4:00" },
+    { name: "Infected Root (Log Basket)", rate: 9100, gp: 246400, afk: 1, tag: "good", xpPerAction: 4550, afkTime: "30:00" },
+    { name: "Rosewood Tree", rate: 85000, gp: 186800, afk: 2, xpPerAction: 6493, afkTime: "4:35" },
+    { name: "Redwood Tree", rate: 85000, gp: 189280, afk: 2, xpPerAction: 6233, afkTime: "4:24" },
+    { name: "Camphor Tree", rate: 70000, gp: 308940, afk: 2, xpPerAction: 2333, afkTime: "2:00" },
   ],
   Fletching: [
-    { name: "Stringing Magic Longs", rate: 250000, gp: 150000, afk: 2, tag: "meta" },
-    { name: "Dragon Javelins", rate: 600000, gp: -150000, afk: 3 },
-    { name: "Broad Arrows", rate: 650000, gp: -1200000, afk: 3 },
-    { name: "Darts (Sweaty)", rate: 1500000, gp: -3000000, afk: 4 },
+    { name: "Unstrung Bows (Magic Longbow)", rate: 247050, gp: -43200, afk: 2, tag: "meta", xpPerAction: 2223, afkTime: "0:32" },
+    { name: "Redwood Shields", rate: 193000, gp: -885856, afk: 2, xpPerAction: 2509, afkTime: "0:47" },
+    { name: "Battlestaves", rate: 143000, gp: -334169, afk: 2, xpPerAction: 1954, afkTime: "0:49" },
+    { name: "Bolt Tips (Diamond)", rate: 8400, gp: 702000, afk: 2, tag: "good", xpPerAction: 189, afkTime: "1:21" },
   ],
   Smithing: [
-    { name: "Addy Plates (Relaxed)", rate: 215000, gp: 150000, afk: 2, tag: "meta" },
-    { name: "Giants' Foundry", rate: 200000, gp: 250000, afk: 2, tag: "good" },
-    { name: "Runite Bars (BF)", rate: 100000, gp: 1600000, afk: 2 },
-    { name: "Addy Plates (Sweaty)", rate: 300000, gp: 220000, afk: 3 },
+    // Platebodies = 5 bars. Adamant bar = 37.5 xp -> 187.5/plate; rune bar = 50 xp -> 250/plate.
+    { name: "Rune Platebodies", rate: 250000, gp: 200000, afk: 2, tag: "meta", xpPerAction: 250, afkTime: "0:30" },
+    { name: "Adamant Platebodies", rate: 215000, gp: 150000, afk: 2, tag: "good", xpPerAction: 187.5, afkTime: "0:30" },
+    { name: "Giants' Foundry", rate: 200000, gp: 250000, afk: 2 },
+    { name: "Cannonballs (Double Mould)", rate: 30720, gp: 612000, afk: 3, xpPerAction: 529, afkTime: "1:02" },
     { name: "Gold Bars (BF/Goldsmith)", rate: 350000, gp: -300000, afk: 3 },
   ],
   Mining: [
-    // fr3nchy: "more likely to do MLM since it's more afk".
-    { name: "MLM (High Level)", rate: 54000, gp: 250000, afk: 1, tag: "meta" },
-    { name: "Gemstones (Relaxed)", rate: 55016, gp: 450000, afk: 2, tag: "good" },
-    { name: "Gemstones (Sweaty 3t)", rate: 80408, gp: 675000, afk: 4 },
-    { name: "Volcanic Mine", rate: 85000, gp: 100000, afk: 3 },
-    { name: "3t4g Granite", rate: 120000, gp: -20000, afk: 4 },
+    // Calcified rocks (Cam Torum, req 41) — 50k/h fully-AFK, beats MLM. fr3nchy also likes MLM.
+    { name: "Calcified Rocks (Cam Torum)", rate: 50000, gp: 0, afk: 1, tag: "meta", xpPerAction: 1625, afkTime: "0:35" },
+    { name: "MLM (High Level)", rate: 54000, gp: 250000, afk: 1, tag: "good" },
+    { name: "Shooting Stars", rate: 31160, gp: 57633, afk: 1, xpPerAction: 3635, afkTime: "7:00" },
+    { name: "Gemstones (Relaxed)", rate: 55016, gp: 450000, afk: 2 },
+    { name: "Amethyst Crystals", rate: 24000, gp: 322700, afk: 2, xpPerAction: 780, afkTime: "1:57" },
+    { name: "Nickel Rocks", rate: 22000, gp: 396630, afk: 2, xpPerAction: 306, afkTime: "0:50" },
   ],
   Herblore: [
-    { name: "Aldarin Mixology", rate: 180000, gp: 300000, afk: 2, tag: "meta" },
-    { name: "Cost Efficient Pots", rate: 250000, gp: -1200000, afk: 2 },
-    { name: "Prayer Potions", rate: 220000, gp: -800000, afk: 3 },
-    { name: "Super Combats", rate: 320000, gp: -1800000, afk: 4 },
-    { name: "Sara Brews", rate: 350000, gp: -4500000, afk: 4 },
+    { name: "Stackable Secondary Pots (Antivenom)", rate: 330000, gp: -3214750, afk: 2, tag: "meta", xpPerAction: 2842, afkTime: "0:31" },
+    { name: "Aldarin Mixology", rate: 180000, gp: 300000, afk: 2, tag: "good" },
+    { name: "Making Tar (Irit)", rate: 170000, gp: -2894000, afk: 2, xpPerAction: 2219, afkTime: "0:47" },
+    { name: "Auto-cleaning Herbs (Torstol)", rate: 45000, gp: 288000, afk: 2, xpPerAction: 425, afkTime: "0:34" },
   ],
   Hunter: [
-    // Black Chins removed — wilderness PvP risk, fr3nchy won't use it.
-    { name: "Quetzal Rumours", rate: 150000, gp: 800000, afk: 2, tag: "meta" },
-    { name: "Herbiboar", rate: 150000, gp: 400000, afk: 2, tag: "good" },
-    { name: "Rainbow Crabs", rate: 90000, gp: 100000, afk: 2 },
-    { name: "Mechanical Monkeys", rate: 100000, gp: 0, afk: 2 },
-    { name: "Red Chins", rate: 160000, gp: 800000, afk: 3 },
+    // Rainbow crabs (Crown Jewel, req 77 Hunter + 64 Sailing): 155k/h + ~690k gp, 216 xp/crab.
+    { name: "Maniacal Monkeys", rate: 120000, gp: 9259, afk: 1, tag: "meta", xpPerAction: 833, afkTime: "0:25" },
+    { name: "Rainbow Crabs (Crown Jewel)", rate: 155000, gp: 690972, afk: 2, tag: "good", xpPerAction: 216, afkTime: "0:30" },
+    { name: "Quetzal Rumours", rate: 150000, gp: 800000, afk: 2 },
+    { name: "Herbiboar", rate: 150000, gp: 400000, afk: 2 },
   ],
   Construction: [
     { name: "Oak Dungeon Doors", rate: 450000, gp: -4000000, afk: 3, tag: "meta" },
