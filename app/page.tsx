@@ -16,8 +16,19 @@ import {
   Hourglass,
   LayoutDashboard,
   Flag,
+  ListChecks,
 } from "lucide-react";
-import GamePlan from "./GamePlan";
+import Planning from "./Planning";
+import FinalPlan from "./FinalPlan";
+import { useGoals } from "./useGoals";
+import {
+  TRAINING_METHODS,
+  methodsFor,
+  afkLabel,
+  afkBadgeClass,
+  ICON_MAP,
+  type Skill,
+} from "./skills";
 
 const USERNAME = "fr3nchy";
 const XP_FOR_99 = 13034431;
@@ -83,156 +94,9 @@ const SKILL_COLORS: Record<string, string> = {
   Overall: "bg-yellow-600",
 };
 
-type Method = { name: string; rate: number; gp: number };
-
-const TRAINING_METHODS: Record<string, Method[]> = {
-  Sailing: [
-    { name: "Shipwreck (Rune Hooks)", rate: 110000, gp: 250000 },
-    { name: "The Gwenith Glide", rate: 200000, gp: -50000 },
-    { name: "Cruising", rate: 50000, gp: 0 },
-  ],
-  Woodcutting: [
-    { name: "Ironwoods (Mid)", rate: 70000, gp: 18000 },
-    { name: "Ironwoods (Focused)", rate: 80000, gp: 20000 },
-    { name: "Ironwoods (Lazy)", rate: 60000, gp: 15000 },
-    { name: "2t Teaks", rate: 180000, gp: -10000 },
-    { name: "Redwoods", rate: 65000, gp: 40000 },
-  ],
-  Fletching: [
-    { name: "Dragon Javelins", rate: 600000, gp: -150000 },
-    { name: "Broad Arrows", rate: 650000, gp: -1200000 },
-    { name: "Stringing Magic Longs", rate: 250000, gp: 150000 },
-    { name: "Darts (Sweaty)", rate: 1500000, gp: -3000000 },
-  ],
-  Smithing: [
-    { name: "Addy Plates (Relaxed)", rate: 215000, gp: 150000 },
-    { name: "Gold Bars (BF/Goldsmith)", rate: 350000, gp: -300000 },
-    { name: "Addy Plates (Sweaty)", rate: 300000, gp: 220000 },
-    { name: "Runite Bars (BF)", rate: 100000, gp: 1600000 },
-    { name: "Giants' Foundry", rate: 200000, gp: 250000 },
-  ],
-  Mining: [
-    { name: "Gemstones (Relaxed)", rate: 55016, gp: 450000 },
-    { name: "Gemstones (Sweaty 3t)", rate: 80408, gp: 675000 },
-    { name: "3t4g Granite", rate: 120000, gp: -20000 },
-    { name: "Volcanic Mine", rate: 85000, gp: 100000 },
-    { name: "MLM (High Level)", rate: 54000, gp: 250000 },
-  ],
-  Herblore: [
-    { name: "Cost Efficient Pots", rate: 250000, gp: -1200000 },
-    { name: "Super Combats", rate: 320000, gp: -1800000 },
-    { name: "Prayer Potions", rate: 220000, gp: -800000 },
-    { name: "Aldarin Mixology", rate: 180000, gp: 300000 },
-    { name: "Sara Brews", rate: 350000, gp: -4500000 },
-  ],
-  Hunter: [
-    { name: "Quetzal Rumours", rate: 150000, gp: 800000 },
-    { name: "Red Chins", rate: 160000, gp: 800000 },
-    { name: "Rainbow Crabs", rate: 90000, gp: 100000 },
-    { name: "Mechanical Monkeys", rate: 100000, gp: 0 },
-    { name: "Black Chins", rate: 200000, gp: 1800000 },
-    { name: "Herbiboar", rate: 150000, gp: 400000 },
-  ],
-  Construction: [
-    { name: "Mahogany Tables", rate: 900000, gp: -14000000 },
-    { name: "Oak Dungeon Doors", rate: 450000, gp: -4000000 },
-  ],
-  Agility: [
-    { name: "Sepulchre", rate: 90000, gp: 2500000 },
-    { name: "Ardougne Rooftop", rate: 62000, gp: 350000 },
-  ],
-  Thieving: [
-    { name: "Pickpocketing Elves", rate: 450000, gp: 2800000 },
-    { name: "Ardy Knights", rate: 250000, gp: 300000 },
-  ],
-  Crafting: [
-    { name: "Cutting Diamonds", rate: 400000, gp: -1500000 },
-    { name: "Black D'hide Bodies", rate: 350000, gp: -2500000 },
-  ],
-  Runecraft: [
-    { name: "Lavas (Sweaty)", rate: 100000, gp: -100000 },
-    { name: "GotR", rate: 60000, gp: 150000 },
-    { name: "ZMI", rate: 45000, gp: 100000 },
-  ],
-  Fishing: [
-    { name: "Barbarian Fishing", rate: 110000, gp: 0 },
-    { name: "Tempoross", rate: 80000, gp: 150000 },
-    { name: "Anglers", rate: 30000, gp: 350000 },
-  ],
-  Cooking: [
-    { name: "1t Karambwans", rate: 900000, gp: -200000 },
-    { name: "Sharks", rate: 300000, gp: 100000 },
-  ],
-  Firemaking: [
-    { name: "Redwood Logs", rate: 450000, gp: -250000 },
-    { name: "Wintertodt", rate: 280000, gp: 150000 },
-  ],
-  Farming: [
-    { name: "Tree Runs", rate: 1000000, gp: -1500000 },
-    { name: "Tithe Farm", rate: 100000, gp: 0 },
-  ],
-  Attack: [{ name: "Slayer/Combat", rate: 80000, gp: 100000 }],
-  Strength: [{ name: "Slayer/Combat", rate: 80000, gp: 100000 }],
-  Defence: [{ name: "Slayer/Combat", rate: 80000, gp: 100000 }],
-  Hitpoints: [{ name: "Passive", rate: 25000, gp: 0 }],
-  Ranged: [
-    { name: "Chinchompas", rate: 500000, gp: -1500000 },
-    { name: "NMZ", rate: 80000, gp: -50000 },
-  ],
-  Magic: [
-    { name: "Barraging", rate: 250000, gp: -1200000 },
-    { name: "Plank Make", rate: 160000, gp: 150000 },
-  ],
-  Prayer: [
-    { name: "Chaos Altar", rate: 600000, gp: -8000000 },
-    { name: "Ensouled Heads", rate: 300000, gp: -2000000 },
-  ],
-  Slayer: [
-    { name: "Efficient", rate: 60000, gp: -200000 },
-    { name: "Chilled", rate: 30000, gp: 500000 },
-  ],
-};
-
-const ICON_MAP: Record<string, string> = {
-  Attack: "⚔️",
-  Defence: "🛡️",
-  Strength: "💪",
-  Hitpoints: "❤️",
-  Ranged: "🏹",
-  Prayer: "✨",
-  Magic: "🔮",
-  Cooking: "🍳",
-  Woodcutting: "🪓",
-  Fletching: "🏹",
-  Fishing: "🎣",
-  Firemaking: "🔥",
-  Crafting: "✂️",
-  Smithing: "🔨",
-  Mining: "⛏️",
-  Herblore: "🧪",
-  Agility: "🏃",
-  Thieving: "🧤",
-  Slayer: "💀",
-  Farming: "🌱",
-  Runecraft: "🌀",
-  Hunter: "🐾",
-  Construction: "🏠",
-  Sailing: "⛵",
-  Overall: "🏆",
-};
-
 const SkillIcon = ({ name }: { name: string }) => (
   <span className="text-lg mr-2">{ICON_MAP[name] || "❓"}</span>
 );
-
-type Skill = {
-  name: string;
-  rank: number;
-  level: number;
-  xp: number;
-  isMaxed: boolean;
-  remainingXp: number;
-};
 
 type StoredSettings = {
   methods: Record<string, number>;
@@ -249,7 +113,8 @@ export default function App() {
   const [hoursPerDay, setHoursPerDay] = useState(4);
   const [showMaxed, setShowMaxed] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
-  const [tab, setTab] = useState<"dashboard" | "plan">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "planning" | "final">("dashboard");
+  const goalStore = useGoals();
 
   // Load persisted settings (localStorage) once on mount.
   useEffect(() => {
@@ -358,7 +223,7 @@ export default function App() {
     let totalHours = 0;
     let totalGpChange = 0;
     const breakdown = activeSkills.map((s) => {
-      const methods = TRAINING_METHODS[s.name] || [{ name: "Default", rate: 50000, gp: 0 }];
+      const methods = methodsFor(s.name);
       const selectedIdx = selections[s.name] || 0;
       const method = methods[selectedIdx] || methods[0];
       const hours = s.remainingXp / (method.rate || 50000);
@@ -466,30 +331,55 @@ export default function App() {
         </header>
 
         {/* Tab nav */}
-        <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800 w-fit">
-          <button
-            onClick={() => setTab("dashboard")}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-              tab === "dashboard"
-                ? "bg-neutral-800 text-yellow-500 shadow-inner"
-                : "text-neutral-500 hover:text-neutral-300"
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" /> Roadmap
-          </button>
-          <button
-            onClick={() => setTab("plan")}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-              tab === "plan"
-                ? "bg-neutral-800 text-yellow-500 shadow-inner"
-                : "text-neutral-500 hover:text-neutral-300"
-            }`}
-          >
-            <Flag className="w-3.5 h-3.5" /> Game Plan
-          </button>
+        <div className="sticky top-0 z-20 -mx-1 px-1 py-2 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
+          <div className="inline-flex gap-1 bg-neutral-900 border border-neutral-800 rounded-2xl p-1">
+            <button
+              onClick={() => setTab("dashboard")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                tab === "dashboard" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" /> Roadmap
+            </button>
+            <button
+              onClick={() => setTab("planning")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                tab === "planning" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+              }`}
+            >
+              <Flag className="w-4 h-4" /> Planning
+            </button>
+            <button
+              onClick={() => setTab("final")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                tab === "final" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+              }`}
+            >
+              <ListChecks className="w-4 h-4" /> Final plan
+            </button>
+          </div>
         </div>
 
-        {tab === "plan" && <GamePlan />}
+        {tab === "planning" && (
+          <Planning
+            skills={data}
+            goals={goalStore.goals}
+            add={goalStore.add}
+            update={goalStore.update}
+            remove={goalStore.remove}
+            setStatus={goalStore.setStatus}
+          />
+        )}
+        {tab === "final" && (
+          <FinalPlan
+            skills={data}
+            hoursPerDay={hoursPerDay}
+            goals={goalStore.goals}
+            remove={goalStore.remove}
+            setStatus={goalStore.setStatus}
+            move={goalStore.move}
+          />
+        )}
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
@@ -534,7 +424,7 @@ export default function App() {
               <div className="bg-neutral-900/50 border border-neutral-800 rounded-[2rem] p-6 flex flex-col justify-between hover:border-yellow-600/30 transition-colors">
                 <div className="flex justify-between items-start">
                   <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
-                    Financial Impact
+                    Profit at max
                   </p>
                   <div className="p-1.5 bg-neutral-950 rounded-lg">
                     <Coins className="w-3.5 h-3.5 text-yellow-600" />
@@ -558,7 +448,7 @@ export default function App() {
                 <div className="absolute inset-0 bg-yellow-600/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                 <div className="relative z-10 flex justify-between items-start">
                   <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
-                    Efficiency Goal
+                    Skills left
                   </p>
                   <div className="p-1.5 bg-neutral-950 rounded-lg">
                     <Target className="w-3.5 h-3.5 text-yellow-600" />
@@ -691,15 +581,12 @@ export default function App() {
         {/* Skill Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {sortedVisibleSkills.map((skill) => {
-            const methods = TRAINING_METHODS[skill.name] || [
-              { name: "Default", rate: 50000, gp: 0 },
-            ];
+            const methods = methodsFor(skill.name);
             const selectedIdx = selections[skill.name] || 0;
             const selectedMethod = methods[selectedIdx] || methods[0];
-            const hoursToMax = skill.remainingXp / selectedMethod.rate;
+            const hoursToMax = skill.remainingXp / (selectedMethod.rate || 50000);
             const revenueAtMax = hoursToMax * selectedMethod.gp;
             const progressTo99 = (skill.xp / XP_FOR_99) * 100;
-            const progressTo92 = (skill.xp / XP_FOR_92) * 100;
 
             return (
               <div
@@ -749,37 +636,25 @@ export default function App() {
                   <div className="space-y-4 relative z-10">
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-end px-1">
-                        <p className="text-[8px] font-black text-neutral-600 uppercase tracking-widest">
+                        <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest">
                           99 Progress
                         </p>
                         <p className="text-[9px] font-mono font-bold text-yellow-600">
                           {Math.floor(progressTo99)}%
                         </p>
                       </div>
-                      <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden border border-neutral-800/50">
+                      <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden border border-neutral-800/50 relative">
                         <div
                           className="bg-gradient-to-r from-yellow-700 to-yellow-400 h-full rounded-full transition-all duration-1000"
                           style={{ width: `${Math.min(100, progressTo99)}%` }}
                         />
+                        <div className="absolute top-0 h-full w-px bg-neutral-500/60" style={{ left: "50%" }} />
                       </div>
-                      {skill.xp < XP_FOR_92 && (
-                        <div className="flex justify-between items-center px-1">
-                          <p className="text-[8px] font-black text-neutral-700 uppercase italic leading-none">
-                            Halfway mark
-                          </p>
-                          <div className="w-20 bg-neutral-950 h-0.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-neutral-700 h-full"
-                              style={{ width: `${Math.min(100, progressTo92)}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-neutral-950/40 p-2.5 rounded-2xl border border-neutral-800/50 text-center">
-                        <p className="text-[7px] text-neutral-600 font-black uppercase mb-0.5">
+                        <p className="text-[10px] text-neutral-600 font-black uppercase mb-0.5">
                           Remaining
                         </p>
                         <p className="text-sm font-mono font-black text-yellow-600">
@@ -787,7 +662,7 @@ export default function App() {
                         </p>
                       </div>
                       <div className="bg-neutral-950/40 p-2.5 rounded-2xl border border-neutral-800/50 text-center">
-                        <p className="text-[7px] text-neutral-600 font-black uppercase mb-0.5">
+                        <p className="text-[10px] text-neutral-600 font-black uppercase mb-0.5">
                           Return
                         </p>
                         <p
@@ -806,7 +681,7 @@ export default function App() {
                     <div className="space-y-1.5 pt-1">
                       <div className="flex justify-between items-center px-1">
                         <div className="flex flex-col">
-                          <label className="text-[7px] font-black text-neutral-600 uppercase tracking-widest leading-none">
+                          <label className="text-[10px] font-black text-neutral-600 uppercase tracking-widest leading-none">
                             Strategy
                           </label>
                           <span className="text-[9px] font-mono font-black text-neutral-400">
@@ -821,6 +696,20 @@ export default function App() {
                           {selectedMethod.gp >= 0 ? "+" : ""}
                           {(selectedMethod.gp / 1000).toFixed(0)}k GP/h
                         </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-1">
+                        <span
+                          className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${afkBadgeClass(
+                            selectedMethod.afk
+                          )}`}
+                        >
+                          {afkLabel(selectedMethod.afk)}
+                        </span>
+                        {selectedMethod.tag && (
+                          <span className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border bg-yellow-600/15 text-yellow-500 border-yellow-700/40">
+                            {selectedMethod.tag}
+                          </span>
+                        )}
                       </div>
                       <div className="relative">
                         <select
