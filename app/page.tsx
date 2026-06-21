@@ -14,7 +14,10 @@ import {
   ListOrdered,
   Calendar,
   Hourglass,
+  LayoutDashboard,
+  Flag,
 } from "lucide-react";
+import GamePlan from "./GamePlan";
 
 const USERNAME = "fr3nchy";
 const XP_FOR_99 = 13034431;
@@ -246,6 +249,7 @@ export default function App() {
   const [hoursPerDay, setHoursPerDay] = useState(4);
   const [showMaxed, setShowMaxed] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
+  const [tab, setTab] = useState<"dashboard" | "plan">("dashboard");
 
   // Load persisted settings (localStorage) once on mount.
   useEffect(() => {
@@ -461,8 +465,34 @@ export default function App() {
           </div>
         </header>
 
+        {/* Tab nav */}
+        <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800 w-fit">
+          <button
+            onClick={() => setTab("dashboard")}
+            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              tab === "dashboard"
+                ? "bg-neutral-800 text-yellow-500 shadow-inner"
+                : "text-neutral-500 hover:text-neutral-300"
+            }`}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" /> Roadmap
+          </button>
+          <button
+            onClick={() => setTab("plan")}
+            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              tab === "plan"
+                ? "bg-neutral-800 text-yellow-500 shadow-inner"
+                : "text-neutral-500 hover:text-neutral-300"
+            }`}
+          >
+            <Flag className="w-3.5 h-3.5" /> Game Plan
+          </button>
+        </div>
+
+        {tab === "plan" && <GamePlan />}
+
         {/* Dashboard Section */}
-        {dashboard && (
+        {tab === "dashboard" && dashboard && (
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
             <div className="lg:col-span-4 bg-neutral-900 border border-neutral-800 rounded-[2.5rem] p-8 relative overflow-hidden flex flex-col justify-center">
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-yellow-600/10 blur-[80px] rounded-full" />
@@ -627,6 +657,8 @@ export default function App() {
         )}
 
         {/* Section Controls */}
+        {tab === "dashboard" && (
+        <>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-1">
           <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-3">
             <Target className="w-5 h-5 text-yellow-600" /> Active Skill Goals
@@ -813,6 +845,8 @@ export default function App() {
             );
           })}
         </div>
+        </>
+        )}
 
         <footer className="pt-10 pb-6 text-center border-t border-neutral-900">
           <div className="flex justify-center items-center gap-6 opacity-30">
