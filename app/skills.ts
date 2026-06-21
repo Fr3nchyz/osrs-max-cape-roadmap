@@ -195,6 +195,15 @@ export function afkLabel(afk: Afk): string {
   return afk <= 1 ? "AFK" : afk === 2 ? "Light" : afk === 3 ? "Active" : "Sweaty";
 }
 
+// Tailwind classes for the AFK badge — green (low effort) → amber → red (sweaty).
+export function afkBadgeClass(afk: Afk): string {
+  return afk <= 2
+    ? "bg-green-600/15 text-green-500 border-green-700/40"
+    : afk === 3
+    ? "bg-amber-600/15 text-amber-500 border-amber-700/40"
+    : "bg-red-600/15 text-red-500 border-red-700/40";
+}
+
 export const ICON_MAP: Record<string, string> = {
   Attack: "⚔️",
   Defence: "🛡️",

@@ -25,6 +25,7 @@ import {
   TRAINING_METHODS,
   methodsFor,
   afkLabel,
+  afkBadgeClass,
   ICON_MAP,
   type Skill,
 } from "./skills";
@@ -583,7 +584,7 @@ export default function App() {
             const methods = methodsFor(skill.name);
             const selectedIdx = selections[skill.name] || 0;
             const selectedMethod = methods[selectedIdx] || methods[0];
-            const hoursToMax = skill.remainingXp / selectedMethod.rate;
+            const hoursToMax = skill.remainingXp / (selectedMethod.rate || 50000);
             const revenueAtMax = hoursToMax * selectedMethod.gp;
             const progressTo99 = (skill.xp / XP_FOR_99) * 100;
 
@@ -698,13 +699,9 @@ export default function App() {
                       </div>
                       <div className="flex items-center gap-1.5 px-1">
                         <span
-                          className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${
-                            selectedMethod.afk <= 2
-                              ? "bg-green-600/15 text-green-500 border-green-700/40"
-                              : selectedMethod.afk === 3
-                              ? "bg-amber-600/15 text-amber-500 border-amber-700/40"
-                              : "bg-red-600/15 text-red-500 border-red-700/40"
-                          }`}
+                          className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${afkBadgeClass(
+                            selectedMethod.afk
+                          )}`}
                         >
                           {afkLabel(selectedMethod.afk)}
                         </span>

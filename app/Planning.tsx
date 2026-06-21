@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Flag, Target, Zap, ChevronDown, ChevronRight, ArrowRight } from "lucide-react";
-import { rankSkillsByAfk, afkLabel, ICON_MAP, type Skill } from "./skills";
+import { rankSkillsByAfk, afkLabel, afkBadgeClass, ICON_MAP, type Skill } from "./skills";
 import type { Goal } from "./useGoals";
 
 const BRAINSTORM_KEY = "osrs-brainstorm-fr3nchy";
@@ -42,15 +42,20 @@ export default function Planning({ skills = [], goals, add, update, remove, setS
 
   const drafts = goals.filter((g) => g.status === "planned");
 
+  // Collapse Suggested Next once goals first exist; afterwards respect manual toggling.
+  const autoCollapsed = useRef(false);
   useEffect(() => {
-    if (goals.length > 0) setShowSuggestions(false);
+    if (!autoCollapsed.current && goals.length > 0) {
+      setShowSuggestions(false);
+      autoCollapsed.current = true;
+    }
   }, [goals.length]);
 
-  const committedTitles = new Set(
-    goals.filter((g) => g.status !== "done").map((g) => g.title.toLowerCase())
-  );
+  // Don't re-suggest a skill that's already a goal in ANY status (planned/active/done) —
+  // prevents a completed-but-not-maxed goal reappearing and creating a duplicate.
+  const existingTitles = new Set(goals.map((g) => g.title.toLowerCase()));
   const suggestions = rankSkillsByAfk(skills).filter(
-    (s) => !committedTitles.has(goalTitleFor(s.skill.name).toLowerCase())
+    (s) => !existingTitles.has(goalTitleFor(s.skill.name).toLowerCase())
   );
 
   const addDraft = () => {
@@ -113,13 +118,9 @@ export default function Planning({ skills = [], goals, add, update, remove, setS
                       <span className="text-xs font-black text-white tracking-tight">{s.skill.name}</span>
                       <span className="text-[10px] font-mono text-neutral-500">Lv {s.skill.level}</span>
                       <span
-                        className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${
-                          s.method.afk <= 2
-                            ? "bg-green-600/15 text-green-500 border-green-700/40"
-                            : s.method.afk === 3
-                            ? "bg-amber-600/15 text-amber-500 border-amber-700/40"
-                            : "bg-red-600/15 text-red-500 border-red-700/40"
-                        }`}
+                        className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${afkBadgeClass(
+                          s.method.afk
+                        )}`}
                       >
                         {afkLabel(s.method.afk)}
                       </span>
