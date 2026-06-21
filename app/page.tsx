@@ -424,7 +424,7 @@ export default function App() {
               <div className="bg-neutral-900/50 border border-neutral-800 rounded-[2rem] p-6 flex flex-col justify-between hover:border-yellow-600/30 transition-colors">
                 <div className="flex justify-between items-start">
                   <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
-                    Financial Impact
+                    Profit at max
                   </p>
                   <div className="p-1.5 bg-neutral-950 rounded-lg">
                     <Coins className="w-3.5 h-3.5 text-yellow-600" />
@@ -448,7 +448,7 @@ export default function App() {
                 <div className="absolute inset-0 bg-yellow-600/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                 <div className="relative z-10 flex justify-between items-start">
                   <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
-                    Efficiency Goal
+                    Skills left
                   </p>
                   <div className="p-1.5 bg-neutral-950 rounded-lg">
                     <Target className="w-3.5 h-3.5 text-yellow-600" />
@@ -637,37 +637,25 @@ export default function App() {
                   <div className="space-y-4 relative z-10">
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-end px-1">
-                        <p className="text-[8px] font-black text-neutral-600 uppercase tracking-widest">
+                        <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest">
                           99 Progress
                         </p>
                         <p className="text-[9px] font-mono font-bold text-yellow-600">
                           {Math.floor(progressTo99)}%
                         </p>
                       </div>
-                      <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden border border-neutral-800/50">
+                      <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden border border-neutral-800/50 relative">
                         <div
                           className="bg-gradient-to-r from-yellow-700 to-yellow-400 h-full rounded-full transition-all duration-1000"
                           style={{ width: `${Math.min(100, progressTo99)}%` }}
                         />
+                        <div className="absolute top-0 h-full w-px bg-neutral-500/60" style={{ left: "50%" }} />
                       </div>
-                      {skill.xp < XP_FOR_92 && (
-                        <div className="flex justify-between items-center px-1">
-                          <p className="text-[8px] font-black text-neutral-700 uppercase italic leading-none">
-                            Halfway mark
-                          </p>
-                          <div className="w-20 bg-neutral-950 h-0.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-neutral-700 h-full"
-                              style={{ width: `${Math.min(100, progressTo92)}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-neutral-950/40 p-2.5 rounded-2xl border border-neutral-800/50 text-center">
-                        <p className="text-[7px] text-neutral-600 font-black uppercase mb-0.5">
+                        <p className="text-[10px] text-neutral-600 font-black uppercase mb-0.5">
                           Remaining
                         </p>
                         <p className="text-sm font-mono font-black text-yellow-600">
@@ -675,7 +663,7 @@ export default function App() {
                         </p>
                       </div>
                       <div className="bg-neutral-950/40 p-2.5 rounded-2xl border border-neutral-800/50 text-center">
-                        <p className="text-[7px] text-neutral-600 font-black uppercase mb-0.5">
+                        <p className="text-[10px] text-neutral-600 font-black uppercase mb-0.5">
                           Return
                         </p>
                         <p
@@ -694,7 +682,7 @@ export default function App() {
                     <div className="space-y-1.5 pt-1">
                       <div className="flex justify-between items-center px-1">
                         <div className="flex flex-col">
-                          <label className="text-[7px] font-black text-neutral-600 uppercase tracking-widest leading-none">
+                          <label className="text-[10px] font-black text-neutral-600 uppercase tracking-widest leading-none">
                             Strategy
                           </label>
                           <span className="text-[9px] font-mono font-black text-neutral-400">
@@ -712,7 +700,7 @@ export default function App() {
                       </div>
                       <div className="flex items-center gap-1.5 px-1">
                         <span
-                          className={`text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${
+                          className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${
                             selectedMethod.afk <= 2
                               ? "bg-green-600/15 text-green-500 border-green-700/40"
                               : selectedMethod.afk === 3
@@ -723,7 +711,7 @@ export default function App() {
                           {afkLabel(selectedMethod.afk)}
                         </span>
                         {selectedMethod.tag && (
-                          <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border bg-yellow-600/15 text-yellow-500 border-yellow-700/40">
+                          <span className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border bg-yellow-600/15 text-yellow-500 border-yellow-700/40">
                             {selectedMethod.tag}
                           </span>
                         )}
