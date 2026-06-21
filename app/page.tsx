@@ -293,7 +293,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Nav Header */}
         <header className="flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-5">
@@ -383,10 +383,11 @@ export default function App() {
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
-          <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            <div className="lg:col-span-4 bg-neutral-900 border border-neutral-800 rounded-[2.5rem] p-8 relative overflow-hidden flex flex-col justify-center">
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+            <div className="lg:col-span-4 bg-neutral-900 border border-neutral-800 rounded-[1.75rem] p-6 relative overflow-hidden flex flex-col">
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-yellow-600/10 blur-[80px] rounded-full" />
-              <div className="relative z-10 space-y-4">
+              <div className="relative z-10 flex flex-col justify-between flex-grow gap-6">
+                <div className="space-y-5">
                 <div className="space-y-1">
                   <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
                     <Clock className="w-3.5 h-3.5 text-yellow-500" /> Estimated Time to Max
@@ -395,6 +396,26 @@ export default function App() {
                     {Math.ceil(dashboard.totalHours)}
                     <span className="text-xl text-neutral-500 ml-2">h</span>
                   </h2>
+                </div>
+                {(() => {
+                  const remaining = dashboard.breakdown.reduce((a, b) => a + b.remainingXp, 0);
+                  const needed = XP_FOR_99 * dashboard.skillsRemaining || 1;
+                  const pct = Math.max(0, Math.min(100, ((needed - remaining) / needed) * 100));
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+                        <span className="text-neutral-500">Overall progress to max</span>
+                        <span className="text-yellow-600 font-mono">{pct.toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-neutral-950 rounded-full overflow-hidden border border-neutral-800/50">
+                        <div
+                          className="h-full bg-gradient-to-r from-yellow-700 to-yellow-400 transition-all duration-1000"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
                 </div>
                 <div className="pt-3 border-t border-neutral-800 flex justify-between items-end">
                   <div className="space-y-1">
@@ -421,7 +442,7 @@ export default function App() {
             </div>
 
             <div className="lg:col-span-4 grid grid-cols-2 gap-3">
-              <div className="bg-neutral-900/50 border border-neutral-800 rounded-[2rem] p-6 flex flex-col justify-between hover:border-yellow-600/30 transition-colors">
+              <div className="bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 flex flex-col justify-between hover:border-yellow-600/30 transition-colors">
                 <div className="flex justify-between items-start">
                   <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
                     Profit at max
@@ -444,7 +465,7 @@ export default function App() {
                   </p>
                 </div>
               </div>
-              <div className="bg-neutral-900/50 border border-neutral-800 rounded-[2rem] p-6 flex flex-col justify-between group cursor-pointer overflow-hidden relative">
+              <div className="bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 flex flex-col justify-between group cursor-pointer overflow-hidden relative">
                 <div className="absolute inset-0 bg-yellow-600/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                 <div className="relative z-10 flex justify-between items-start">
                   <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
@@ -463,7 +484,7 @@ export default function App() {
                   </p>
                 </div>
               </div>
-              <div className="col-span-2 bg-neutral-900/50 border border-neutral-800 rounded-[2rem] p-6 space-y-3">
+              <div className="col-span-2 bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 space-y-3 flex flex-col justify-center">
                 <div className="flex justify-between items-center px-1">
                   <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
                     <Hourglass className="w-3.5 h-3.5 text-neutral-400" /> Playtime Density
@@ -486,7 +507,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="lg:col-span-4 bg-neutral-900 border border-neutral-800 rounded-[2.5rem] p-6 overflow-hidden flex flex-col">
+            <div className="lg:col-span-4 bg-neutral-900 border border-neutral-800 rounded-[1.75rem] p-6 overflow-hidden flex flex-col">
               <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <Zap className="w-3 h-3 text-yellow-600" /> Time Density Visualizer
               </p>
@@ -591,14 +612,14 @@ export default function App() {
             return (
               <div
                 key={skill.name}
-                className={`group relative p-5 rounded-[2rem] border transition-all duration-300 ${
+                className={`group relative p-5 rounded-[1.75rem] border transition-all duration-300 ${
                   skill.isMaxed
                     ? "bg-neutral-900/20 border-green-900/10 opacity-40"
                     : "bg-neutral-900 border-neutral-800 hover:border-neutral-700 hover:shadow-xl"
                 }`}
               >
                 {!skill.isMaxed && skill.xp > XP_FOR_92 && (
-                  <div className="absolute inset-0 bg-yellow-600/5 rounded-[2rem] animate-pulse pointer-events-none" />
+                  <div className="absolute inset-0 bg-yellow-600/5 rounded-[1.75rem] animate-pulse pointer-events-none" />
                 )}
 
                 <div className="flex justify-between items-start mb-4 relative z-10">
