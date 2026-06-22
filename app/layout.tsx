@@ -27,7 +27,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <a href="https://amaurymarque.com" aria-label="Back to amaurymarque.com" style={{ position: "fixed", top: 8, left: 8, zIndex: 9999, fontFamily: "ui-monospace,monospace", fontSize: "0.8rem", color: "#888", textDecoration: "none", opacity: 0.75 }}>← AM.</a>
+        {children}
+      </body>
     </html>
   );
 }
