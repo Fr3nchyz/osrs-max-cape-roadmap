@@ -34,7 +34,7 @@ export default function SkillTable({ skills, selections, onMethodChange, weekly,
 
   return (
     <div className="overflow-x-auto rounded-[1.75rem] border border-neutral-800 bg-neutral-900">
-      <table className="w-full min-w-[820px] text-xs">
+      <table className="w-full min-w-[900px] text-xs">
         <thead>
           <tr className="border-b border-neutral-800">
             <th className={th}>Skill</th>
@@ -45,6 +45,7 @@ export default function SkillTable({ skills, selections, onMethodChange, weekly,
             <th className={thR}>Exp/action</th>
             <th className={th}>Platform</th>
             <th className={thR}>Hrs left</th>
+            <th className={thR}>GP/h</th>
             <th className={thR}>Real cost</th>
           </tr>
         </thead>
@@ -129,6 +130,9 @@ export default function SkillTable({ skills, selections, onMethodChange, weekly,
                   </span>
                 </td>
                 <td className="px-3 py-2.5 text-right font-mono text-yellow-600">{Math.ceil(hours)}h</td>
+                <td className={`px-3 py-2.5 text-right font-mono ${m.gp >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {fmtGp(m.gp)}
+                </td>
                 <td className={`px-3 py-2.5 text-right font-mono font-black ${ret >= 0 ? "text-green-500" : "text-red-500"}`}>
                   {fmtGp(ret)}
                 </td>

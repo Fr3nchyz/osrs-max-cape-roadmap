@@ -56,6 +56,10 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
     { name: "Redwood Shields", rate: 193000, gp: -885856, afk: 2, xpPerAction: 2509, afkTime: "0:47", setup: { location: "Bank" } },
     { name: "Battlestaves", rate: 143000, gp: -334169, afk: 2, xpPerAction: 1954, afkTime: "0:49", setup: { location: "Bank" } },
     { name: "Bolt Tips (Diamond)", rate: 8400, gp: 702000, afk: 2, tag: "good", xpPerAction: 189, afkTime: "1:21", setup: { location: "Anywhere" } },
+    { name: "Stringing Magic Longbows", rate: 268000, gp: 200000, afk: 2, tag: "good", setup: { location: "Bank" } },
+    { name: "Amethyst Broad Bolts", rate: 250000, gp: 200000, afk: 2, setup: { location: "Anywhere" } },
+    { name: "Broad Bolts", rate: 480000, gp: 100000, afk: 3, setup: { location: "Anywhere" } },
+    { name: "Dragon Darts (Sweaty)", rate: 1100000, gp: -3000000, afk: 4, setup: { location: "Anywhere" } },
   ],
   Smithing: [
     // Platebodies = 5 bars. Adamant bar = 37.5 xp -> 187.5/plate; rune bar = 50 xp -> 250/plate.
@@ -79,6 +83,10 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
     { name: "Aldarin Mixology", rate: 180000, gp: 300000, afk: 2, tag: "good", setup: { location: "Aldarin (Varlamore)", travelMins: 2 } },
     { name: "Making Tar (Irit)", rate: 170000, gp: -2894000, afk: 2, xpPerAction: 2219, afkTime: "0:47", setup: { location: "Bank" } },
     { name: "Auto-cleaning Herbs (Torstol)", rate: 45000, gp: 288000, afk: 2, xpPerAction: 425, afkTime: "0:34", setup: { location: "Bank" } },
+    { name: "Divine Potions", rate: 240000, gp: 250000, afk: 2, tag: "good", setup: { location: "Bank" } },
+    { name: "Prayer Potions", rate: 250000, gp: 150000, afk: 2, setup: { location: "Bank" } },
+    { name: "Super Restores", rate: 280000, gp: 80000, afk: 2, setup: { location: "Bank" } },
+    { name: "Super Combat Potions", rate: 270000, gp: -200000, afk: 2, setup: { location: "Bank" } },
   ],
   Hunter: [
     // Rainbow crabs (Crown Jewel, req 77 Hunter + 64 Sailing): 155k/h + ~690k gp, 216 xp/crab.
@@ -86,6 +94,9 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
     { name: "Rainbow Crabs (Crown Jewel)", rate: 155000, gp: 690972, afk: 2, tag: "good", xpPerAction: 216, afkTime: "0:30", setup: { location: "The Crown Jewel", travelMins: 2 }, links: [{ label: "Wiki guide", url: "https://oldschool.runescape.wiki/w/Rainbow_crab_(Hunter)" }] },
     { name: "Quetzal Rumours", rate: 150000, gp: 800000, afk: 2, setup: { location: "Varlamore", travelMins: 2 } },
     { name: "Herbiboar", rate: 150000, gp: 400000, afk: 2, setup: { location: "Fossil Island", travelMins: 3 } },
+    { name: "Birdhouse Runs", rate: 20000, gp: 100000, afk: 1, tag: "good", setup: { location: "Fossil Island", travelMins: 3 } },
+    { name: "Salamanders (Net Traps)", rate: 80000, gp: 60000, afk: 1, setup: { location: "Anywhere (traps)" } },
+    { name: "Red Chinchompas", rate: 160000, gp: 800000, afk: 3, setup: { location: "Feldip Hills", travelMins: 2 } },
   ],
   Construction: [
     { name: "Oak Dungeon Doors", rate: 450000, gp: -4000000, afk: 3, tag: "meta" },

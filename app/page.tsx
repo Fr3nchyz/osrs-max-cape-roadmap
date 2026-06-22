@@ -454,6 +454,32 @@ export default function App() {
                   );
                 })()}
                 </div>
+
+                <div className="space-y-2">
+                  <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest">
+                    Biggest grinds
+                  </p>
+                  {dashboard.breakdown.slice(0, 4).map((s) => {
+                    const max = dashboard.breakdown[0].hours || 1;
+                    return (
+                      <div key={s.name} className="flex items-center gap-2">
+                        <span className="w-20 text-[10px] font-bold text-neutral-400 uppercase truncate">
+                          {s.name}
+                        </span>
+                        <div className="flex-1 h-1.5 bg-neutral-950 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${SKILL_COLORS[s.name] || "bg-zinc-600"}`}
+                            style={{ width: `${(s.hours / max) * 100}%` }}
+                          />
+                        </div>
+                        <span className="w-10 text-right text-[10px] font-mono text-neutral-500">
+                          {Math.ceil(s.hours)}h
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
                 <div className="pt-3 border-t border-neutral-800 flex justify-between items-end">
                   <div className="space-y-1">
                     <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
