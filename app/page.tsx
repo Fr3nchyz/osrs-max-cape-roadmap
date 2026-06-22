@@ -499,7 +499,7 @@ export default function App() {
                   </p>
                 </div>
               </div>
-              <div className="bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 flex flex-col justify-between group cursor-pointer overflow-hidden relative">
+              <div className="bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 flex flex-col gap-3 group cursor-pointer overflow-hidden relative">
                 <div className="absolute inset-0 bg-yellow-600/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                 <div className="relative z-10 flex justify-between items-start">
                   <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
@@ -509,14 +509,46 @@ export default function App() {
                     <Target className="w-3.5 h-3.5 text-yellow-600" />
                   </div>
                 </div>
-                <div className="relative z-10">
+                <div className="relative z-10 flex items-baseline gap-2">
                   <h3 className="text-3xl font-black font-mono tracking-tighter leading-none text-white">
                     {dashboard.skillsRemaining}
                   </h3>
-                  <p className="text-neutral-500 text-[10px] mt-1 font-medium uppercase">
-                    Skills remaining
+                  <p className="text-neutral-500 text-[10px] font-medium uppercase">
+                    remaining
                   </p>
                 </div>
+                {(() => {
+                  const nearest = data
+                    .filter((s) => s.name !== "Overall" && !s.isMaxed)
+                    .sort((a, b) => b.xp - a.xp)
+                    .slice(0, 3);
+                  return (
+                    <div className="relative z-10 space-y-1.5 pt-1">
+                      <p className="text-[8px] font-black text-neutral-600 uppercase tracking-widest">
+                        Nearest 99 — quick wins
+                      </p>
+                      {nearest.map((s) => {
+                        const pct = Math.min(100, (s.xp / XP_FOR_99) * 100);
+                        return (
+                          <div key={s.name} className="flex items-center gap-2">
+                            <span className="w-20 text-[10px] font-bold text-neutral-400 uppercase truncate">
+                              {s.name}
+                            </span>
+                            <div className="flex-1 h-1 bg-neutral-950 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-yellow-700 to-yellow-400"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="w-8 text-right text-[10px] font-mono text-yellow-600">
+                              {Math.floor(pct)}%
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
               <div className="col-span-2 bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 space-y-4 flex flex-col justify-center">
                 <div className="space-y-2">
