@@ -19,8 +19,7 @@ import {
   ListChecks,
   Play,
 } from "lucide-react";
-import Planning from "./Planning";
-import FinalPlan from "./FinalPlan";
+import Plan from "./Plan";
 import SessionPlanner from "./SessionPlanner";
 import NextUp from "./NextUp";
 import SkillTable from "./SkillTable";
@@ -29,8 +28,8 @@ import { useWeekly } from "./useWeekly";
 import {
   TRAINING_METHODS,
   methodsFor,
-  adjustedGp,
   platformsFor,
+  computeMaxPlan,
   DEFAULT_EARN_RATE,
   type Skill,
 } from "./skills";
@@ -119,7 +118,7 @@ export default function App() {
   const [showMaxed, setShowMaxed] = useState(false);
   const [mobileOnly, setMobileOnly] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
-  const [tab, setTab] = useState<"dashboard" | "planning" | "final" | "session">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "plan" | "now">("dashboard");
   const goalStore = useGoals();
   const weekly = useWeekly(data);
 
@@ -226,41 +225,23 @@ export default function App() {
     persist({ orderType: type });
   };
 
+  // Combat-linked maxing plan (HP free, Slayer overlaps the melee grind — no overcount).
+  const maxPlan = useMemo(
+    () => (data.length ? computeMaxPlan(data, selections, earnRate) : null),
+    [data, selections, earnRate]
+  );
+
   const dashboard = useMemo(() => {
-    if (!data.length) return null;
-    const activeSkills = data.filter((s) => s.name !== "Overall" && !s.isMaxed);
-    let totalHours = 0;
-    let totalGpChange = 0;
-    let totalTrueCost = 0;
-    const breakdown = activeSkills.map((s) => {
-      const methods = methodsFor(s.name);
-      const selectedIdx = selections[s.name] || 0;
-      const method = methods[selectedIdx] || methods[0];
-      const hours = s.remainingXp / (method.rate || 50000);
-      const trueGpPerHour = adjustedGp(method, earnRate);
-      const costToMax = hours * trueGpPerHour;
-      totalHours += hours;
-      totalGpChange += hours * method.gp;
-      totalTrueCost += costToMax;
-      return {
-        name: s.name,
-        hours: isNaN(hours) ? 0 : hours,
-        remainingXp: s.remainingXp,
-        methodName: method.name,
-        gpPerHour: method.gp,
-        trueGpPerHour,
-        costToMax: isNaN(costToMax) ? 0 : costToMax,
-        xpPerHour: method.rate,
-      };
-    });
+    if (!maxPlan) return null;
     return {
-      totalHours: isNaN(totalHours) ? 0 : totalHours,
-      totalGpChange: isNaN(totalGpChange) ? 0 : totalGpChange,
-      totalTrueCost: isNaN(totalTrueCost) ? 0 : totalTrueCost,
-      skillsRemaining: activeSkills.length,
-      breakdown: breakdown.sort((a, b) => b.hours - a.hours),
+      totalHours: maxPlan.totalHours,
+      totalGpChange: maxPlan.netGp,
+      totalTrueCost: maxPlan.trueCost,
+      bankroll: maxPlan.bankroll,
+      skillsRemaining: maxPlan.skillsRemaining,
+      breakdown: maxPlan.lines.filter((l) => l.hours > 0),
     };
-  }, [data, selections, earnRate]);
+  }, [maxPlan]);
 
   const maxDate = useMemo(() => {
     if (!dashboard) return null;
@@ -366,57 +347,41 @@ export default function App() {
               <LayoutDashboard className="w-4 h-4" /> Roadmap
             </button>
             <button
-              onClick={() => setTab("planning")}
+              onClick={() => setTab("plan")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
-                tab === "planning" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+                tab === "plan" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
               }`}
             >
-              <Flag className="w-4 h-4" /> Planning
+              <ListChecks className="w-4 h-4" /> Plan
             </button>
             <button
-              onClick={() => setTab("final")}
+              onClick={() => setTab("now")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
-                tab === "final" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+                tab === "now" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
               }`}
             >
-              <ListChecks className="w-4 h-4" /> Final plan
-            </button>
-            <button
-              onClick={() => setTab("session")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
-                tab === "session" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
-              }`}
-            >
-              <Play className="w-4 h-4" /> Session
+              <Play className="w-4 h-4" /> Now
             </button>
           </div>
         </div>
 
-        {tab === "planning" && (
-          <Planning
+        {tab === "plan" && (
+          <Plan
             skills={data}
+            hoursPerDay={hoursPerDay}
             goals={goalStore.goals}
             add={goalStore.add}
             update={goalStore.update}
             remove={goalStore.remove}
             setStatus={goalStore.setStatus}
-          />
-        )}
-        {tab === "final" && (
-          <FinalPlan
-            skills={data}
-            hoursPerDay={hoursPerDay}
-            goals={goalStore.goals}
-            remove={goalStore.remove}
-            setStatus={goalStore.setStatus}
             move={goalStore.move}
           />
         )}
-        {tab === "session" && <SessionPlanner skills={data} />}
+        {tab === "now" && <SessionPlanner skills={data} />}
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
-          <NextUp skills={data} onPlan={() => setTab("session")} />
+          <NextUp skills={data} onPlan={() => setTab("now")} />
         )}
 
         {tab === "dashboard" && dashboard && (
@@ -524,6 +489,12 @@ export default function App() {
                     <span className={dashboard.totalGpChange >= 0 ? "text-green-600" : "text-red-600"}>
                       {dashboard.totalGpChange >= 0 ? "+" : "−"}
                       {Math.abs(Math.floor(dashboard.totalGpChange / 1000000)).toLocaleString()}M supply
+                    </span>
+                  </p>
+                  <p className="text-neutral-600 text-[10px] mt-1.5 font-black uppercase tracking-widest border-t border-neutral-800/60 pt-1.5">
+                    Bankroll to fund ·{" "}
+                    <span className="text-red-500 font-mono">
+                      −{(dashboard.bankroll / 1000000).toFixed(0)}M
                     </span>
                   </p>
                 </div>
@@ -708,6 +679,7 @@ export default function App() {
           onMethodChange={handleMethodChange}
           weekly={weekly.gains}
           earnRate={earnRate}
+          byName={maxPlan?.byName ?? {}}
         />
         </>
         )}

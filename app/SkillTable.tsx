@@ -9,6 +9,7 @@ import {
   platformLabel,
   ICON_MAP,
   type Skill,
+  type MaxLine,
 } from "./skills";
 
 const XP_FOR_99 = 13034431;
@@ -26,9 +27,10 @@ type Props = {
   onMethodChange: (skill: string, idx: number) => void;
   weekly: Record<string, number>;
   earnRate: number;
+  byName: Record<string, MaxLine>;
 };
 
-export default function SkillTable({ skills, selections, onMethodChange, weekly, earnRate }: Props) {
+export default function SkillTable({ skills, selections, onMethodChange, weekly, earnRate, byName }: Props) {
   const th = "text-[9px] font-black text-neutral-600 uppercase tracking-widest px-3 py-2 text-left";
   const thR = th + " text-right";
 
@@ -54,8 +56,9 @@ export default function SkillTable({ skills, selections, onMethodChange, weekly,
             const methods = methodsFor(skill.name);
             const idx = selections[skill.name] || 0;
             const m = methods[idx] || methods[0];
-            const hours = hoursFor(skill, m);
-            const ret = hours * adjustedGp(m, earnRate);
+            const line = byName[skill.name];
+            const hours = line ? line.hours : hoursFor(skill, m);
+            const ret = line ? line.trueAtMax : hours * adjustedGp(m, earnRate);
             const pct = Math.min(100, (skill.xp / XP_FOR_99) * 100);
             const week = weekly[skill.name] || 0;
             const mobile = platformLabel(m) === "Mobile";
@@ -129,7 +132,18 @@ export default function SkillTable({ skills, selections, onMethodChange, weekly,
                     {platformLabel(m)}
                   </span>
                 </td>
-                <td className="px-3 py-2.5 text-right font-mono text-yellow-600">{Math.ceil(hours)}h</td>
+                <td className="px-3 py-2.5 text-right font-mono text-yellow-600">
+                  {line?.grouped === "free" ? (
+                    <span className="text-[10px] text-green-600" title="Trained free alongside melee combat">free</span>
+                  ) : (
+                    <>
+                      {Math.ceil(hours)}h
+                      {line?.grouped === "overlap" && (
+                        <span className="ml-1 text-[9px] text-neutral-600" title="Overlaps the melee grind (Slayer)">·linked</span>
+                      )}
+                    </>
+                  )}
+                </td>
                 <td className={`px-3 py-2.5 text-right font-mono ${m.gp >= 0 ? "text-green-600" : "text-red-600"}`}>
                   {fmtGp(m.gp)}
                 </td>
