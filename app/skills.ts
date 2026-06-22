@@ -162,6 +162,21 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
 
 const FALLBACK_METHOD: Method = { name: "Default", rate: 50000, gp: 0, afk: 2 };
 
+export const DEFAULT_EARN_RATE = 2_000_000; // baseline GP/h at Semi-AFK (afk 2) — your money rate
+
+// Opportunity cost: gp/h you forgo by skilling instead of money-making, scaled by attention.
+// Multipliers on the baseline hit the stated tiers (baseline 2M -> afk1=1.5M, afk2=2M, afk3/4=3.5M).
+// Set the baseline to 0 to disable opportunity cost entirely (real cost == raw supply gp).
+const EARN_MULT: Record<Afk, number> = { 1: 0.75, 2: 1, 3: 1.75, 4: 1.75 };
+export function earnRate(afk: Afk, baseline = DEFAULT_EARN_RATE): number {
+  return baseline * EARN_MULT[afk];
+}
+
+// "Real" GP/h of a training method: its own supply gp minus the gp you forgo by not money-making.
+export function adjustedGp(method: Method, baseline = DEFAULT_EARN_RATE): number {
+  return method.gp - earnRate(method.afk, baseline);
+}
+
 // Methods for a skill, always non-empty.
 export function methodsFor(skill: string): Method[] {
   return TRAINING_METHODS[skill] ?? [FALLBACK_METHOD];
@@ -209,6 +224,24 @@ export function afkLabel(afk: Afk): string {
 export function platformsFor(method: Method): Platform[] {
   return method.platforms ?? (method.afk >= 4 ? ["desktop"] : ["desktop", "mobile"]);
 }
+
+// Single label for a method's platform suitability (mobile-capable -> "Mobile").
+export function platformLabel(method: Method): "Mobile" | "Desktop" {
+  return platformsFor(method).includes("mobile") ? "Mobile" : "Desktop";
+}
+
+// Closest bite-sized wins: unmaxed skills ranked by fewest hours-to-99 via their best AFK method.
+export type Win = { skill: Skill; method: Method; hours: number };
+export function closestWins(skills: Skill[]): Win[] {
+  return skills
+    .filter((s) => s.name !== "Overall" && !s.isMaxed)
+    .map((skill) => {
+      const method = bestMethod(skill.name);
+      return { skill, method, hours: hoursFor(skill, method) };
+    })
+    .sort((a, b) => a.hours - b.hours);
+}
+
 
 export type Intensity = "chill" | "balanced" | "intense";
 export type SessionFilters = { platform: Platform; intensity: Intensity; sessionMins: number };

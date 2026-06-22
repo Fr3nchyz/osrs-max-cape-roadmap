@@ -7,7 +7,7 @@ import {
   Zap,
   Target,
   RefreshCw,
-  ChevronDown,
+  Smartphone,
   Eye,
   EyeOff,
   Coins,
@@ -22,13 +22,16 @@ import {
 import Planning from "./Planning";
 import FinalPlan from "./FinalPlan";
 import SessionPlanner from "./SessionPlanner";
+import NextUp from "./NextUp";
+import SkillTable from "./SkillTable";
 import { useGoals } from "./useGoals";
+import { useWeekly } from "./useWeekly";
 import {
   TRAINING_METHODS,
   methodsFor,
-  afkLabel,
-  afkBadgeClass,
-  ICON_MAP,
+  adjustedGp,
+  platformsFor,
+  DEFAULT_EARN_RATE,
   type Skill,
 } from "./skills";
 
@@ -96,14 +99,13 @@ const SKILL_COLORS: Record<string, string> = {
   Overall: "bg-yellow-600",
 };
 
-const SkillIcon = ({ name }: { name: string }) => (
-  <span className="text-lg mr-2">{ICON_MAP[name] || "❓"}</span>
-);
 
 type StoredSettings = {
   methods: Record<string, number>;
   orderType: "efficient" | "xp";
   hoursPerDay: number;
+  earnRate: number;
+  mobileOnly: boolean;
 };
 
 export default function App() {
@@ -113,10 +115,13 @@ export default function App() {
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [orderType, setOrderType] = useState<"efficient" | "xp">("efficient");
   const [hoursPerDay, setHoursPerDay] = useState(4);
+  const [earnRate, setEarnRate] = useState(DEFAULT_EARN_RATE);
   const [showMaxed, setShowMaxed] = useState(false);
+  const [mobileOnly, setMobileOnly] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
   const [tab, setTab] = useState<"dashboard" | "planning" | "final" | "session">("dashboard");
   const goalStore = useGoals();
+  const weekly = useWeekly(data);
 
   // Load persisted settings (localStorage) once on mount.
   useEffect(() => {
@@ -127,6 +132,8 @@ export default function App() {
         if (s.methods) setSelections(s.methods);
         if (s.orderType) setOrderType(s.orderType);
         if (typeof s.hoursPerDay === "number") setHoursPerDay(s.hoursPerDay);
+        if (typeof s.earnRate === "number") setEarnRate(s.earnRate);
+        if (typeof s.mobileOnly === "boolean") setMobileOnly(s.mobileOnly);
       }
     } catch {
       /* ignore corrupt storage */
@@ -138,7 +145,7 @@ export default function App() {
       const raw = localStorage.getItem(STORAGE_KEY);
       const current: StoredSettings = raw
         ? JSON.parse(raw)
-        : { methods: {}, orderType: "efficient", hoursPerDay: 4 };
+        : { methods: {}, orderType: "efficient", hoursPerDay: 4, earnRate: DEFAULT_EARN_RATE, mobileOnly: false };
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ ...current, ...updates })
@@ -224,29 +231,36 @@ export default function App() {
     const activeSkills = data.filter((s) => s.name !== "Overall" && !s.isMaxed);
     let totalHours = 0;
     let totalGpChange = 0;
+    let totalTrueCost = 0;
     const breakdown = activeSkills.map((s) => {
       const methods = methodsFor(s.name);
       const selectedIdx = selections[s.name] || 0;
       const method = methods[selectedIdx] || methods[0];
       const hours = s.remainingXp / (method.rate || 50000);
+      const trueGpPerHour = adjustedGp(method, earnRate);
+      const costToMax = hours * trueGpPerHour;
       totalHours += hours;
       totalGpChange += hours * method.gp;
+      totalTrueCost += costToMax;
       return {
         name: s.name,
         hours: isNaN(hours) ? 0 : hours,
         remainingXp: s.remainingXp,
         methodName: method.name,
         gpPerHour: method.gp,
+        trueGpPerHour,
+        costToMax: isNaN(costToMax) ? 0 : costToMax,
         xpPerHour: method.rate,
       };
     });
     return {
       totalHours: isNaN(totalHours) ? 0 : totalHours,
       totalGpChange: isNaN(totalGpChange) ? 0 : totalGpChange,
+      totalTrueCost: isNaN(totalTrueCost) ? 0 : totalTrueCost,
       skillsRemaining: activeSkills.length,
       breakdown: breakdown.sort((a, b) => b.hours - a.hours),
     };
-  }, [data, selections]);
+  }, [data, selections, earnRate]);
 
   const maxDate = useMemo(() => {
     if (!dashboard) return null;
@@ -261,7 +275,15 @@ export default function App() {
   }, [dashboard, hoursPerDay]);
 
   const sortedVisibleSkills = useMemo(() => {
-    const visible = data.filter((s) => s.name !== "Overall" && (showMaxed || !s.isMaxed));
+    const visible = data.filter((s) => {
+      if (s.name === "Overall" || (!showMaxed && s.isMaxed)) return false;
+      if (mobileOnly) {
+        const ms = methodsFor(s.name);
+        const sel = ms[selections[s.name] || 0] || ms[0];
+        if (!platformsFor(sel).includes("mobile")) return false;
+      }
+      return true;
+    });
     return visible.sort((a, b) => {
       if (orderType === "efficient") {
         const pA = EFFICIENT_PRIORITY[a.name] || 99;
@@ -275,7 +297,7 @@ export default function App() {
       if (!aIsCombat && bIsCombat) return -1;
       return b.remainingXp - a.remainingXp;
     });
-  }, [data, showMaxed, orderType]);
+  }, [data, showMaxed, orderType, mobileOnly, selections]);
 
   if (loading) {
     return (
@@ -394,6 +416,10 @@ export default function App() {
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
+          <NextUp skills={data} onPlan={() => setTab("session")} />
+        )}
+
+        {tab === "dashboard" && dashboard && (
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
             <div className="lg:col-span-4 bg-neutral-900 border border-neutral-800 rounded-[1.75rem] p-6 relative overflow-hidden flex flex-col">
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-yellow-600/10 blur-[80px] rounded-full" />
@@ -456,23 +482,23 @@ export default function App() {
               <div className="bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 flex flex-col justify-between hover:border-yellow-600/30 transition-colors">
                 <div className="flex justify-between items-start">
                   <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
-                    Profit at max
+                    Real cost to max
                   </p>
                   <div className="p-1.5 bg-neutral-950 rounded-lg">
                     <Coins className="w-3.5 h-3.5 text-yellow-600" />
                   </div>
                 </div>
                 <div>
-                  <h3
-                    className={`text-3xl font-black font-mono tracking-tighter leading-none ${
-                      dashboard.totalGpChange >= 0 ? "text-green-500" : "text-red-500"
-                    }`}
-                  >
-                    {dashboard.totalGpChange >= 0 ? "+" : ""}
-                    {Math.floor(dashboard.totalGpChange / 1000000).toLocaleString()}M
+                  <h3 className="text-3xl font-black font-mono tracking-tighter leading-none text-red-500">
+                    {dashboard.totalTrueCost >= 0 ? "+" : "−"}
+                    {Math.abs(Math.floor(dashboard.totalTrueCost / 1000000)).toLocaleString()}M
                   </h3>
                   <p className="text-neutral-500 text-[10px] mt-1 font-medium uppercase">
-                    Net profit at 99
+                    incl. opportunity cost ·{" "}
+                    <span className={dashboard.totalGpChange >= 0 ? "text-green-600" : "text-red-600"}>
+                      {dashboard.totalGpChange >= 0 ? "+" : "−"}
+                      {Math.abs(Math.floor(dashboard.totalGpChange / 1000000)).toLocaleString()}M supply
+                    </span>
                   </p>
                 </div>
               </div>
@@ -495,26 +521,51 @@ export default function App() {
                   </p>
                 </div>
               </div>
-              <div className="col-span-2 bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 space-y-3 flex flex-col justify-center">
-                <div className="flex justify-between items-center px-1">
-                  <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                    <Hourglass className="w-3.5 h-3.5 text-neutral-400" /> Playtime Density
-                  </p>
-                  <span className="text-[10px] font-black text-white">{hoursPerDay}h / Day</span>
+              <div className="col-span-2 bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 space-y-4 flex flex-col justify-center">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center px-1">
+                    <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                      <Hourglass className="w-3.5 h-3.5 text-neutral-400" /> Playtime Density
+                    </p>
+                    <span className="text-[10px] font-black text-white">{hoursPerDay}h / Day</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="16"
+                    step="0.5"
+                    value={hoursPerDay}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setHoursPerDay(v);
+                      persist({ hoursPerDay: v });
+                    }}
+                    className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-yellow-600"
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="16"
-                  step="0.5"
-                  value={hoursPerDay}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    setHoursPerDay(v);
-                    persist({ hoursPerDay: v });
-                  }}
-                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-yellow-600"
-                />
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center px-1">
+                    <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                      <Coins className="w-3.5 h-3.5 text-neutral-400" /> GP/h · Semi-AFK
+                    </p>
+                    <span className="text-[10px] font-black text-white">
+                      {earnRate === 0 ? "Off" : `${(earnRate / 1000000).toFixed(2)}M / h`}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="6000000"
+                    step="250000"
+                    value={earnRate}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setEarnRate(v);
+                      persist({ earnRate: v });
+                    }}
+                    className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-yellow-600"
+                  />
+                </div>
               </div>
             </div>
 
@@ -608,178 +659,30 @@ export default function App() {
               <ListOrdered className="w-3 h-3" /> XP Remaining
             </button>
           </div>
+
+          <button
+            onClick={() => {
+              const v = !mobileOnly;
+              setMobileOnly(v);
+              persist({ mobileOnly: v });
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
+              mobileOnly
+                ? "bg-green-600/15 text-green-500 border-green-700/40"
+                : "bg-neutral-900 text-neutral-500 border-neutral-800 hover:text-neutral-300"
+            }`}
+          >
+            <Smartphone className="w-3 h-3" /> Mobile only
+          </button>
         </div>
 
-        {/* Skill Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {sortedVisibleSkills.map((skill) => {
-            const methods = methodsFor(skill.name);
-            const selectedIdx = selections[skill.name] || 0;
-            const selectedMethod = methods[selectedIdx] || methods[0];
-            const hoursToMax = skill.remainingXp / (selectedMethod.rate || 50000);
-            const revenueAtMax = hoursToMax * selectedMethod.gp;
-            const progressTo99 = (skill.xp / XP_FOR_99) * 100;
-
-            return (
-              <div
-                key={skill.name}
-                className={`group relative p-5 rounded-[1.75rem] border transition-all duration-300 ${
-                  skill.isMaxed
-                    ? "bg-neutral-900/20 border-green-900/10 opacity-40"
-                    : "bg-neutral-900 border-neutral-800 hover:border-neutral-700 hover:shadow-xl"
-                }`}
-              >
-                {!skill.isMaxed && skill.xp > XP_FOR_92 && (
-                  <div className="absolute inset-0 bg-yellow-600/5 rounded-[1.75rem] animate-pulse pointer-events-none" />
-                )}
-
-                <div className="flex justify-between items-start mb-4 relative z-10">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-11 h-11 rounded-xl border border-neutral-800 flex items-center justify-center transition-colors group-hover:bg-neutral-950 ${
-                        skill.isMaxed
-                          ? "bg-green-900/20 border-green-900/30"
-                          : "bg-neutral-950/50"
-                      }`}
-                    >
-                      <SkillIcon name={skill.name} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-black text-white uppercase tracking-tighter leading-none mb-1">
-                        {skill.name}
-                      </p>
-                      <p className="text-[9px] text-neutral-500 font-mono tracking-widest">
-                        {(skill.xp || 0).toLocaleString()} XP
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className={`text-2xl font-black font-mono leading-none ${
-                        skill.isMaxed ? "text-green-500" : "text-white"
-                      }`}
-                    >
-                      {skill.level}
-                    </p>
-                  </div>
-                </div>
-
-                {!skill.isMaxed && (
-                  <div className="space-y-4 relative z-10">
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-end px-1">
-                        <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest">
-                          99 Progress
-                        </p>
-                        <p className="text-[9px] font-mono font-bold text-yellow-600">
-                          {Math.floor(progressTo99)}%
-                        </p>
-                      </div>
-                      <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden border border-neutral-800/50 relative">
-                        <div
-                          className="bg-gradient-to-r from-yellow-700 to-yellow-400 h-full rounded-full transition-all duration-1000"
-                          style={{ width: `${Math.min(100, progressTo99)}%` }}
-                        />
-                        <div className="absolute top-0 h-full w-px bg-neutral-500/60" style={{ left: "50%" }} />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-neutral-950/40 p-2.5 rounded-2xl border border-neutral-800/50 text-center">
-                        <p className="text-[10px] text-neutral-600 font-black uppercase mb-0.5">
-                          Remaining
-                        </p>
-                        <p className="text-sm font-mono font-black text-yellow-600">
-                          {Math.ceil(hoursToMax)}h
-                        </p>
-                      </div>
-                      <div className="bg-neutral-950/40 p-2.5 rounded-2xl border border-neutral-800/50 text-center">
-                        <p className="text-[10px] text-neutral-600 font-black uppercase mb-0.5">
-                          Return
-                        </p>
-                        <p
-                          className={`text-sm font-mono font-black ${
-                            revenueAtMax >= 0 ? "text-green-500" : "text-red-500"
-                          }`}
-                        >
-                          {revenueAtMax >= 0 ? "+" : ""}
-                          {Math.abs(revenueAtMax) >= 1000000
-                            ? `${(revenueAtMax / 1000000).toFixed(1)}M`
-                            : `${(revenueAtMax / 1000).toFixed(0)}k`}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex justify-between items-center px-1">
-                        <div className="flex flex-col">
-                          <label className="text-[10px] font-black text-neutral-600 uppercase tracking-widest leading-none">
-                            Strategy
-                          </label>
-                          <span className="text-[9px] font-mono font-black text-neutral-400">
-                            {(selectedMethod.rate / 1000).toFixed(0)}k XP/h
-                          </span>
-                        </div>
-                        <span
-                          className={`text-[11px] font-mono font-black ${
-                            selectedMethod.gp >= 0 ? "text-green-500" : "text-red-500"
-                          }`}
-                        >
-                          {selectedMethod.gp >= 0 ? "+" : ""}
-                          {(selectedMethod.gp / 1000).toFixed(0)}k GP/h
-                        </span>
-                      </div>
-                      {(selectedMethod.xpPerAction || selectedMethod.afkTime) && (
-                        <div className="flex justify-between items-center px-1 text-[10px] font-mono text-neutral-600">
-                          <span>
-                            {selectedMethod.xpPerAction
-                              ? `${selectedMethod.xpPerAction.toLocaleString()} xp/action`
-                              : ""}
-                          </span>
-                          {selectedMethod.afkTime && (
-                            <span className="flex items-center gap-1">
-                              {selectedMethod.afkTime} AFK
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1.5 px-1">
-                        <span
-                          className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${afkBadgeClass(
-                            selectedMethod.afk
-                          )}`}
-                        >
-                          {afkLabel(selectedMethod.afk)}
-                        </span>
-                        {selectedMethod.tag && (
-                          <span className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border bg-yellow-600/15 text-yellow-500 border-yellow-700/40">
-                            {selectedMethod.tag}
-                          </span>
-                        )}
-                      </div>
-                      <div className="relative">
-                        <select
-                          value={selectedIdx}
-                          onChange={(e) =>
-                            handleMethodChange(skill.name, parseInt(e.target.value))
-                          }
-                          className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-[10px] font-bold text-neutral-300 focus:outline-none focus:ring-1 focus:ring-yellow-600 appearance-none cursor-pointer"
-                        >
-                          {methods.map((m, idx) => (
-                            <option key={idx} value={idx}>
-                              {m.name}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-2.5 w-3 h-3 text-neutral-600 pointer-events-none" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <SkillTable
+          skills={sortedVisibleSkills}
+          selections={selections}
+          onMethodChange={handleMethodChange}
+          weekly={weekly.gains}
+          earnRate={earnRate}
+        />
         </>
         )}
 
