@@ -27,6 +27,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>" /></head>
       <body className="min-h-full flex flex-col">
         <a href="https://amaurymarque.com" aria-label="Back to amaurymarque.com" style={{ position: "fixed", top: 8, left: 8, zIndex: 9999, fontFamily: "ui-monospace,monospace", fontSize: "0.8rem", color: "#888", textDecoration: "none", opacity: 0.75 }}>← AM.</a>
         {children}
