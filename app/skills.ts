@@ -188,6 +188,90 @@ export function adjustedGp(method: Method, baseline = DEFAULT_EARN_RATE): number
   return method.gp - earnRate(method.afk, baseline);
 }
 
+// --- Combat-linked maxing plan ------------------------------------------------------------------
+// Attack/Strength/Defence/HP are trained together on Slayer tasks, so summing their hours
+// independently overcounts time-to-max. Model: HP is free (0h, rides along melee); the melee trio
+// is trained sequentially via style-switching (their hours still sum); Slayer overlaps that grind,
+// so Slayer only adds the hours beyond the melee total. Group time = max(slayer, att+str+def).
+export const MELEE_SLAYER_GROUP = ["Attack", "Strength", "Defence", "Hitpoints", "Slayer"];
+
+export type MaxLine = {
+  name: string;
+  hours: number;
+  remainingXp: number;
+  method: Method;
+  gpAtMax: number; // hours * supply gp (after grouping)
+  trueAtMax: number; // hours * adjustedGp (after grouping)
+  grouped?: "free" | "overlap";
+};
+
+export type MaxPlan = {
+  totalHours: number;
+  netGp: number; // Σ gpAtMax (supply)
+  bankroll: number; // Σ of negative gpAtMax, as a positive magnitude (GP you must fund)
+  trueCost: number; // Σ trueAtMax (incl. opportunity cost)
+  skillsRemaining: number;
+  lines: MaxLine[]; // sorted by hours desc
+  byName: Record<string, MaxLine>;
+};
+
+export function computeMaxPlan(
+  skills: Skill[],
+  selections: Record<string, number>,
+  baseline = DEFAULT_EARN_RATE
+): MaxPlan {
+  const active = skills.filter((s) => s.name !== "Overall" && !s.isMaxed);
+
+  // Raw per-skill hours first (needed to derive the melee total before grouping Slayer).
+  const raw = active.map((s) => {
+    const ms = methodsFor(s.name);
+    const method = ms[selections[s.name] || 0] || ms[0];
+    const hours = s.remainingXp / (method.rate || 50000);
+    return { skill: s, method, hours: isNaN(hours) ? 0 : hours };
+  });
+  const rawHours = (name: string) => raw.find((r) => r.skill.name === name)?.hours ?? 0;
+  const meleeSum = rawHours("Attack") + rawHours("Strength") + rawHours("Defence");
+
+  const lines: MaxLine[] = raw.map(({ skill, method, hours }) => {
+    let h = hours;
+    let grouped: MaxLine["grouped"];
+    if (skill.name === "Hitpoints") {
+      h = 0;
+      grouped = "free";
+    } else if (skill.name === "Slayer") {
+      h = Math.max(0, hours - meleeSum); // overlaps the melee grind
+      grouped = "overlap";
+    }
+    return {
+      name: skill.name,
+      hours: h,
+      remainingXp: skill.remainingXp,
+      method,
+      gpAtMax: h * method.gp,
+      trueAtMax: h * adjustedGp(method, baseline),
+      grouped,
+    };
+  });
+
+  const totalHours = lines.reduce((a, l) => a + l.hours, 0);
+  const netGp = lines.reduce((a, l) => a + l.gpAtMax, 0);
+  const trueCost = lines.reduce((a, l) => a + l.trueAtMax, 0);
+  const bankroll = lines.reduce((a, l) => a + Math.min(0, l.gpAtMax), 0);
+  const sorted = [...lines].sort((a, b) => b.hours - a.hours);
+  const byName: Record<string, MaxLine> = {};
+  lines.forEach((l) => (byName[l.name] = l));
+
+  return {
+    totalHours,
+    netGp,
+    bankroll: Math.abs(bankroll),
+    trueCost,
+    skillsRemaining: active.length,
+    lines: sorted,
+    byName,
+  };
+}
+
 // Methods for a skill, always non-empty.
 export function methodsFor(skill: string): Method[] {
   return TRAINING_METHODS[skill] ?? [FALLBACK_METHOD];

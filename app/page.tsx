@@ -19,8 +19,7 @@ import {
   ListChecks,
   Play,
 } from "lucide-react";
-import Planning from "./Planning";
-import FinalPlan from "./FinalPlan";
+import Plan from "./Plan";
 import SessionPlanner from "./SessionPlanner";
 import NextUp from "./NextUp";
 import SkillTable from "./SkillTable";
@@ -29,8 +28,8 @@ import { useWeekly } from "./useWeekly";
 import {
   TRAINING_METHODS,
   methodsFor,
-  adjustedGp,
   platformsFor,
+  computeMaxPlan,
   DEFAULT_EARN_RATE,
   type Skill,
 } from "./skills";
@@ -119,7 +118,7 @@ export default function App() {
   const [showMaxed, setShowMaxed] = useState(false);
   const [mobileOnly, setMobileOnly] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
-  const [tab, setTab] = useState<"dashboard" | "planning" | "final" | "session">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "plan" | "now">("dashboard");
   const goalStore = useGoals();
   const weekly = useWeekly(data);
 
@@ -226,41 +225,27 @@ export default function App() {
     persist({ orderType: type });
   };
 
+  // Combat-linked maxing plan (HP free, Slayer overlaps the melee grind — no overcount).
+  const maxPlan = useMemo(
+    () => (data.length ? computeMaxPlan(data, selections, earnRate) : null),
+    [data, selections, earnRate]
+  );
+
   const dashboard = useMemo(() => {
-    if (!data.length) return null;
-    const activeSkills = data.filter((s) => s.name !== "Overall" && !s.isMaxed);
-    let totalHours = 0;
-    let totalGpChange = 0;
-    let totalTrueCost = 0;
-    const breakdown = activeSkills.map((s) => {
-      const methods = methodsFor(s.name);
-      const selectedIdx = selections[s.name] || 0;
-      const method = methods[selectedIdx] || methods[0];
-      const hours = s.remainingXp / (method.rate || 50000);
-      const trueGpPerHour = adjustedGp(method, earnRate);
-      const costToMax = hours * trueGpPerHour;
-      totalHours += hours;
-      totalGpChange += hours * method.gp;
-      totalTrueCost += costToMax;
-      return {
-        name: s.name,
-        hours: isNaN(hours) ? 0 : hours,
-        remainingXp: s.remainingXp,
-        methodName: method.name,
-        gpPerHour: method.gp,
-        trueGpPerHour,
-        costToMax: isNaN(costToMax) ? 0 : costToMax,
-        xpPerHour: method.rate,
-      };
-    });
+    if (!maxPlan) return null;
+    const xpToGo = maxPlan.lines.reduce((a, l) => a + l.remainingXp, 0);
+    const needed = XP_FOR_99 * maxPlan.skillsRemaining || 1;
     return {
-      totalHours: isNaN(totalHours) ? 0 : totalHours,
-      totalGpChange: isNaN(totalGpChange) ? 0 : totalGpChange,
-      totalTrueCost: isNaN(totalTrueCost) ? 0 : totalTrueCost,
-      skillsRemaining: activeSkills.length,
-      breakdown: breakdown.sort((a, b) => b.hours - a.hours),
+      totalHours: maxPlan.totalHours,
+      totalGpChange: maxPlan.netGp,
+      totalTrueCost: maxPlan.trueCost,
+      bankroll: maxPlan.bankroll,
+      skillsRemaining: maxPlan.skillsRemaining,
+      xpToGo,
+      overallPct: Math.max(0, Math.min(100, ((needed - xpToGo) / needed) * 100)),
+      breakdown: maxPlan.lines.filter((l) => l.hours > 0),
     };
-  }, [data, selections, earnRate]);
+  }, [maxPlan]);
 
   const maxDate = useMemo(() => {
     if (!dashboard) return null;
@@ -366,194 +351,162 @@ export default function App() {
               <LayoutDashboard className="w-4 h-4" /> Roadmap
             </button>
             <button
-              onClick={() => setTab("planning")}
+              onClick={() => setTab("plan")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
-                tab === "planning" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+                tab === "plan" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
               }`}
             >
-              <Flag className="w-4 h-4" /> Planning
+              <ListChecks className="w-4 h-4" /> Plan
             </button>
             <button
-              onClick={() => setTab("final")}
+              onClick={() => setTab("now")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
-                tab === "final" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+                tab === "now" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
               }`}
             >
-              <ListChecks className="w-4 h-4" /> Final plan
-            </button>
-            <button
-              onClick={() => setTab("session")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
-                tab === "session" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
-              }`}
-            >
-              <Play className="w-4 h-4" /> Session
+              <Play className="w-4 h-4" /> Now
             </button>
           </div>
         </div>
 
-        {tab === "planning" && (
-          <Planning
+        {tab === "plan" && (
+          <Plan
             skills={data}
+            hoursPerDay={hoursPerDay}
             goals={goalStore.goals}
             add={goalStore.add}
             update={goalStore.update}
             remove={goalStore.remove}
             setStatus={goalStore.setStatus}
-          />
-        )}
-        {tab === "final" && (
-          <FinalPlan
-            skills={data}
-            hoursPerDay={hoursPerDay}
-            goals={goalStore.goals}
-            remove={goalStore.remove}
-            setStatus={goalStore.setStatus}
             move={goalStore.move}
           />
         )}
-        {tab === "session" && <SessionPlanner skills={data} />}
+        {tab === "now" && <SessionPlanner skills={data} />}
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
-          <NextUp skills={data} onPlan={() => setTab("session")} />
+          <NextUp skills={data} onPlan={() => setTab("now")} />
         )}
 
         {tab === "dashboard" && dashboard && (
-          <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-            <div className="lg:col-span-4 bg-neutral-900 border border-neutral-800 rounded-[1.75rem] p-6 relative overflow-hidden flex flex-col">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-yellow-600/10 blur-[80px] rounded-full" />
-              <div className="relative z-10 flex flex-col justify-between flex-grow gap-6">
-                <div className="space-y-5">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-yellow-500" /> Estimated Time to Max
+          <section className="space-y-3">
+            {/* Dense stat strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
+              {[
+                { label: "Time to max", value: `${Math.ceil(dashboard.totalHours)}h`, cls: "text-yellow-500" },
+                { label: "Maxing date", value: maxDate ?? "—", cls: "text-white", small: true },
+                { label: "Overall", value: `${dashboard.overallPct.toFixed(1)}%`, cls: "text-white" },
+                { label: "XP to go", value: `${(dashboard.xpToGo / 1_000_000).toFixed(1)}M`, cls: "text-white" },
+                { label: "Skills left", value: `${dashboard.skillsRemaining}`, cls: "text-white" },
+                { label: "Real cost", value: `−${Math.abs(dashboard.totalTrueCost / 1_000_000).toFixed(0)}M`, cls: "text-red-500" },
+                { label: "Bankroll", value: `−${(dashboard.bankroll / 1_000_000).toFixed(0)}M`, cls: "text-red-400" },
+                {
+                  label: `This week${weekly.source === "wom" ? " · WOM" : ""}`,
+                  value: weekly.total > 0 ? `+${(weekly.total / 1000).toFixed(0)}k` : "—",
+                  cls: weekly.total > 0 ? "text-green-500" : "text-neutral-600",
+                },
+              ].map((m) => (
+                <div key={m.label} className="bg-neutral-900 border border-neutral-800 rounded-2xl px-3 py-2.5">
+                  <p className="text-[8px] font-black text-neutral-600 uppercase tracking-widest truncate">{m.label}</p>
+                  <p className={`font-black font-mono tracking-tighter leading-none mt-1.5 ${m.small ? "text-base" : "text-2xl"} ${m.cls}`}>
+                    {m.value}
                   </p>
-                  <h2 className="text-7xl font-black text-white font-mono tracking-tighter leading-none">
-                    {Math.ceil(dashboard.totalHours)}
-                    <span className="text-xl text-neutral-500 ml-2">h</span>
-                  </h2>
                 </div>
-                {(() => {
-                  const remaining = dashboard.breakdown.reduce((a, b) => a + b.remainingXp, 0);
-                  const needed = XP_FOR_99 * dashboard.skillsRemaining || 1;
-                  const pct = Math.max(0, Math.min(100, ((needed - remaining) / needed) * 100));
-                  return (
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
-                        <span className="text-neutral-500">Overall progress to max</span>
-                        <span className="text-yellow-600 font-mono">{pct.toFixed(1)}%</span>
-                      </div>
-                      <div className="w-full h-2 bg-neutral-950 rounded-full overflow-hidden border border-neutral-800/50">
-                        <div
-                          className="h-full bg-gradient-to-r from-yellow-700 to-yellow-400 transition-all duration-1000"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })()}
-                </div>
+              ))}
+            </div>
 
-                <div className="space-y-2">
-                  <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest">
-                    Biggest grinds
+            {/* Lower row: density · lists · controls */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+              {/* Time density */}
+              <div className="lg:col-span-5 bg-neutral-900 border border-neutral-800 rounded-[1.5rem] p-5 flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                    <Zap className="w-3 h-3 text-yellow-600" /> Time density
                   </p>
-                  {dashboard.breakdown.slice(0, 4).map((s) => {
-                    const max = dashboard.breakdown[0].hours || 1;
+                  <span className="text-[9px] font-black text-yellow-600 font-mono">{dashboard.overallPct.toFixed(0)}% to max</span>
+                </div>
+                <div className="w-full h-9 bg-neutral-950 rounded-xl overflow-hidden border border-neutral-800/50 flex shadow-inner relative group">
+                  {dashboard.breakdown.map((s) => {
+                    const percent = (s.hours / dashboard.totalHours) * 100;
+                    if (percent < 0.1) return null;
                     return (
-                      <div key={s.name} className="flex items-center gap-2">
-                        <span className="w-20 text-[10px] font-bold text-neutral-400 uppercase truncate">
-                          {s.name}
-                        </span>
-                        <div className="flex-1 h-1.5 bg-neutral-950 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${SKILL_COLORS[s.name] || "bg-zinc-600"}`}
-                            style={{ width: `${(s.hours / max) * 100}%` }}
-                          />
+                      <div
+                        key={s.name}
+                        style={{ width: `${percent}%` }}
+                        onMouseEnter={() => setHoveredSkill(s.name)}
+                        onMouseLeave={() => setHoveredSkill(null)}
+                        className={`${SKILL_COLORS[s.name] || "bg-zinc-600"} h-full transition-all hover:brightness-125 border-r border-neutral-950/20 last:border-0 cursor-help`}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3">
+                  {dashboard.breakdown.map((s) => {
+                    const percent = (s.hours / dashboard.totalHours) * 100;
+                    return (
+                      <div
+                        key={s.name}
+                        className={`flex items-center justify-between px-1.5 py-1 rounded-lg transition-colors ${
+                          hoveredSkill === s.name ? "bg-neutral-800" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${SKILL_COLORS[s.name] || "bg-zinc-600"}`} />
+                          <span className="text-[9px] font-bold text-neutral-400 uppercase truncate">{s.name}</span>
                         </div>
-                        <span className="w-10 text-right text-[10px] font-mono text-neutral-500">
-                          {Math.ceil(s.hours)}h
-                        </span>
+                        <span className="text-[9px] font-mono font-bold text-white shrink-0">{Math.round(percent)}%</span>
                       </div>
                     );
                   })}
                 </div>
+              </div>
 
-                <div className="pt-3 border-t border-neutral-800 flex justify-between items-end">
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
-                      Maxing Date
-                    </p>
-                    <p className="text-lg font-bold text-yellow-500 flex items-center gap-2">
-                      <Calendar className="w-4 h-4 opacity-50" /> {maxDate}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
-                      XP to 99
-                    </p>
-                    <p className="text-lg font-bold text-white font-mono">
-                      {(
-                        dashboard.breakdown.reduce((a, b) => a + b.remainingXp, 0) / 1000000
-                      ).toFixed(1)}
-                      M
-                    </p>
-                  </div>
+              {/* Biggest grinds + nearest 99 */}
+              <div className="lg:col-span-4 bg-neutral-900 border border-neutral-800 rounded-[1.5rem] p-5 space-y-4">
+                <div className="space-y-1.5">
+                  <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Biggest grinds</p>
+                  {dashboard.breakdown.slice(0, 4).map((s) => {
+                    const max = dashboard.breakdown[0].hours || 1;
+                    return (
+                      <div key={s.name} className="flex items-center gap-2">
+                        <span className="w-20 text-[10px] font-bold text-neutral-400 uppercase truncate">{s.name}</span>
+                        <div className="flex-1 h-1.5 bg-neutral-950 rounded-full overflow-hidden">
+                          <div className={`h-full ${SKILL_COLORS[s.name] || "bg-zinc-600"}`} style={{ width: `${(s.hours / max) * 100}%` }} />
+                        </div>
+                        <span className="w-10 text-right text-[10px] font-mono text-neutral-500">{Math.ceil(s.hours)}h</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="space-y-1.5 border-t border-neutral-800 pt-3">
+                  <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Nearest 99 — quick wins</p>
+                  {data
+                    .filter((s) => s.name !== "Overall" && !s.isMaxed)
+                    .sort((a, b) => b.xp - a.xp)
+                    .slice(0, 4)
+                    .map((s) => {
+                      const pct = Math.min(100, (s.xp / XP_FOR_99) * 100);
+                      return (
+                        <div key={s.name} className="flex items-center gap-2">
+                          <span className="w-20 text-[10px] font-bold text-neutral-400 uppercase truncate">{s.name}</span>
+                          <div className="flex-1 h-1.5 bg-neutral-950 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-yellow-700 to-yellow-400" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="w-10 text-right text-[10px] font-mono text-yellow-600">{Math.floor(pct)}%</span>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
-            </div>
 
-            <div className="lg:col-span-4 grid grid-cols-2 gap-3">
-              <div className="bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 flex flex-col justify-between hover:border-yellow-600/30 transition-colors">
-                <div className="flex justify-between items-start">
-                  <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
-                    Real cost to max
-                  </p>
-                  <div className="p-1.5 bg-neutral-950 rounded-lg">
-                    <Coins className="w-3.5 h-3.5 text-yellow-600" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-3xl font-black font-mono tracking-tighter leading-none text-red-500">
-                    {dashboard.totalTrueCost >= 0 ? "+" : "−"}
-                    {Math.abs(Math.floor(dashboard.totalTrueCost / 1000000)).toLocaleString()}M
-                  </h3>
-                  <p className="text-neutral-500 text-[10px] mt-1 font-medium uppercase">
-                    incl. opportunity cost ·{" "}
-                    <span className={dashboard.totalGpChange >= 0 ? "text-green-600" : "text-red-600"}>
-                      {dashboard.totalGpChange >= 0 ? "+" : "−"}
-                      {Math.abs(Math.floor(dashboard.totalGpChange / 1000000)).toLocaleString()}M supply
-                    </span>
-                  </p>
-                </div>
-              </div>
-              <div className="bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 flex flex-col justify-between group cursor-pointer overflow-hidden relative">
-                <div className="absolute inset-0 bg-yellow-600/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                <div className="relative z-10 flex justify-between items-start">
-                  <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">
-                    Skills left
-                  </p>
-                  <div className="p-1.5 bg-neutral-950 rounded-lg">
-                    <Target className="w-3.5 h-3.5 text-yellow-600" />
-                  </div>
-                </div>
-                <div className="relative z-10">
-                  <h3 className="text-3xl font-black font-mono tracking-tighter leading-none text-white">
-                    {dashboard.skillsRemaining}
-                  </h3>
-                  <p className="text-neutral-500 text-[10px] mt-1 font-medium uppercase">
-                    Skills remaining
-                  </p>
-                </div>
-              </div>
-              <div className="col-span-2 bg-neutral-900/50 border border-neutral-800 rounded-[1.75rem] p-6 space-y-4 flex flex-col justify-center">
+              {/* Controls */}
+              <div className="lg:col-span-3 bg-neutral-900 border border-neutral-800 rounded-[1.5rem] p-5 flex flex-col justify-center gap-5">
                 <div className="space-y-2">
                   <div className="flex justify-between items-center px-1">
                     <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                      <Hourglass className="w-3.5 h-3.5 text-neutral-400" /> Playtime Density
+                      <Hourglass className="w-3.5 h-3.5 text-neutral-400" /> Playtime
                     </p>
-                    <span className="text-[10px] font-black text-white">{hoursPerDay}h / Day</span>
+                    <span className="text-[10px] font-black text-white">{hoursPerDay}h / day</span>
                   </div>
                   <input
                     type="range"
@@ -572,10 +525,10 @@ export default function App() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center px-1">
                     <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                      <Coins className="w-3.5 h-3.5 text-neutral-400" /> GP/h · Semi-AFK
+                      <Coins className="w-3.5 h-3.5 text-neutral-400" /> GP/h · semi-afk
                     </p>
                     <span className="text-[10px] font-black text-white">
-                      {earnRate === 0 ? "Off" : `${(earnRate / 1000000).toFixed(2)}M / h`}
+                      {earnRate === 0 ? "Off" : `${(earnRate / 1000000).toFixed(2)}M`}
                     </span>
                   </div>
                   <input
@@ -591,64 +544,6 @@ export default function App() {
                     }}
                     className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-yellow-600"
                   />
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-4 bg-neutral-900 border border-neutral-800 rounded-[1.75rem] p-6 overflow-hidden flex flex-col">
-              <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Zap className="w-3 h-3 text-yellow-600" /> Time Density Visualizer
-              </p>
-              <div className="space-y-4 flex-grow flex flex-col">
-                <div className="w-full h-10 bg-neutral-950 rounded-xl overflow-hidden border border-neutral-800/50 flex shadow-inner relative group">
-                  {dashboard.breakdown.map((s) => {
-                    const percent = (s.hours / dashboard.totalHours) * 100;
-                    if (percent < 0.1) return null;
-                    return (
-                      <div
-                        key={s.name}
-                        style={{ width: `${percent}%` }}
-                        onMouseEnter={() => setHoveredSkill(s.name)}
-                        onMouseLeave={() => setHoveredSkill(null)}
-                        className={`${
-                          SKILL_COLORS[s.name] || "bg-zinc-600"
-                        } h-full transition-all hover:scale-x-105 hover:brightness-125 border-r border-neutral-950/20 last:border-0 cursor-help`}
-                      />
-                    );
-                  })}
-                </div>
-
-                <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                    {dashboard.breakdown.map((s) => {
-                      const percent = (s.hours / dashboard.totalHours) * 100;
-                      const isHovered = hoveredSkill === s.name;
-                      return (
-                        <div
-                          key={s.name}
-                          className={`flex items-center justify-between p-1.5 rounded-lg transition-all ${
-                            isHovered ? "bg-neutral-800 scale-105" : "bg-transparent"
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 overflow-hidden">
-                            <div
-                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                SKILL_COLORS[s.name] || "bg-zinc-600"
-                              }`}
-                            />
-                            <span className="text-[9px] font-bold text-neutral-400 uppercase truncate">
-                              {s.name}
-                            </span>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <span className="text-[9px] font-mono font-bold text-white">
-                              {Math.round(percent)}%
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               </div>
             </div>
@@ -708,6 +603,7 @@ export default function App() {
           onMethodChange={handleMethodChange}
           weekly={weekly.gains}
           earnRate={earnRate}
+          byName={maxPlan?.byName ?? {}}
         />
         </>
         )}
