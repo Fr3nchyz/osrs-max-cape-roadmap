@@ -56,6 +56,10 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
     { name: "Redwood Shields", rate: 193000, gp: -885856, afk: 2, xpPerAction: 2509, afkTime: "0:47", setup: { location: "Bank" } },
     { name: "Battlestaves", rate: 143000, gp: -334169, afk: 2, xpPerAction: 1954, afkTime: "0:49", setup: { location: "Bank" } },
     { name: "Bolt Tips (Diamond)", rate: 8400, gp: 702000, afk: 2, tag: "good", xpPerAction: 189, afkTime: "1:21", setup: { location: "Anywhere" } },
+    { name: "Stringing Magic Longbows", rate: 268000, gp: 200000, afk: 2, tag: "good", setup: { location: "Bank" } },
+    { name: "Amethyst Broad Bolts", rate: 250000, gp: 200000, afk: 2, setup: { location: "Anywhere" } },
+    { name: "Broad Bolts", rate: 480000, gp: 100000, afk: 3, setup: { location: "Anywhere" } },
+    { name: "Dragon Darts (Sweaty)", rate: 1100000, gp: -3000000, afk: 4, setup: { location: "Anywhere" } },
   ],
   Smithing: [
     // Platebodies = 5 bars. Adamant bar = 37.5 xp -> 187.5/plate; rune bar = 50 xp -> 250/plate.
@@ -79,6 +83,10 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
     { name: "Aldarin Mixology", rate: 180000, gp: 300000, afk: 2, tag: "good", setup: { location: "Aldarin (Varlamore)", travelMins: 2 } },
     { name: "Making Tar (Irit)", rate: 170000, gp: -2894000, afk: 2, xpPerAction: 2219, afkTime: "0:47", setup: { location: "Bank" } },
     { name: "Auto-cleaning Herbs (Torstol)", rate: 45000, gp: 288000, afk: 2, xpPerAction: 425, afkTime: "0:34", setup: { location: "Bank" } },
+    { name: "Divine Potions", rate: 240000, gp: 250000, afk: 2, tag: "good", setup: { location: "Bank" } },
+    { name: "Prayer Potions", rate: 250000, gp: 150000, afk: 2, setup: { location: "Bank" } },
+    { name: "Super Restores", rate: 280000, gp: 80000, afk: 2, setup: { location: "Bank" } },
+    { name: "Super Combat Potions", rate: 270000, gp: -200000, afk: 2, setup: { location: "Bank" } },
   ],
   Hunter: [
     // Rainbow crabs (Crown Jewel, req 77 Hunter + 64 Sailing): 155k/h + ~690k gp, 216 xp/crab.
@@ -86,6 +94,9 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
     { name: "Rainbow Crabs (Crown Jewel)", rate: 155000, gp: 690972, afk: 2, tag: "good", xpPerAction: 216, afkTime: "0:30", setup: { location: "The Crown Jewel", travelMins: 2 }, links: [{ label: "Wiki guide", url: "https://oldschool.runescape.wiki/w/Rainbow_crab_(Hunter)" }] },
     { name: "Quetzal Rumours", rate: 150000, gp: 800000, afk: 2, setup: { location: "Varlamore", travelMins: 2 } },
     { name: "Herbiboar", rate: 150000, gp: 400000, afk: 2, setup: { location: "Fossil Island", travelMins: 3 } },
+    { name: "Birdhouse Runs", rate: 20000, gp: 100000, afk: 1, tag: "good", setup: { location: "Fossil Island", travelMins: 3 } },
+    { name: "Salamanders (Net Traps)", rate: 80000, gp: 60000, afk: 1, setup: { location: "Anywhere (traps)" } },
+    { name: "Red Chinchompas", rate: 160000, gp: 800000, afk: 3, setup: { location: "Feldip Hills", travelMins: 2 } },
   ],
   Construction: [
     { name: "Oak Dungeon Doors", rate: 450000, gp: -4000000, afk: 3, tag: "meta" },
@@ -162,6 +173,21 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
 
 const FALLBACK_METHOD: Method = { name: "Default", rate: 50000, gp: 0, afk: 2 };
 
+export const DEFAULT_EARN_RATE = 2_000_000; // baseline GP/h at Semi-AFK (afk 2) — your money rate
+
+// Opportunity cost: gp/h you forgo by skilling instead of money-making, scaled by attention.
+// Multipliers on the baseline hit the stated tiers (baseline 2M -> afk1=1.5M, afk2=2M, afk3/4=3.5M).
+// Set the baseline to 0 to disable opportunity cost entirely (real cost == raw supply gp).
+const EARN_MULT: Record<Afk, number> = { 1: 0.75, 2: 1, 3: 1.75, 4: 1.75 };
+export function earnRate(afk: Afk, baseline = DEFAULT_EARN_RATE): number {
+  return baseline * EARN_MULT[afk];
+}
+
+// "Real" GP/h of a training method: its own supply gp minus the gp you forgo by not money-making.
+export function adjustedGp(method: Method, baseline = DEFAULT_EARN_RATE): number {
+  return method.gp - earnRate(method.afk, baseline);
+}
+
 // Methods for a skill, always non-empty.
 export function methodsFor(skill: string): Method[] {
   return TRAINING_METHODS[skill] ?? [FALLBACK_METHOD];
@@ -209,6 +235,24 @@ export function afkLabel(afk: Afk): string {
 export function platformsFor(method: Method): Platform[] {
   return method.platforms ?? (method.afk >= 4 ? ["desktop"] : ["desktop", "mobile"]);
 }
+
+// Single label for a method's platform suitability (mobile-capable -> "Mobile").
+export function platformLabel(method: Method): "Mobile" | "Desktop" {
+  return platformsFor(method).includes("mobile") ? "Mobile" : "Desktop";
+}
+
+// Closest bite-sized wins: unmaxed skills ranked by fewest hours-to-99 via their best AFK method.
+export type Win = { skill: Skill; method: Method; hours: number };
+export function closestWins(skills: Skill[]): Win[] {
+  return skills
+    .filter((s) => s.name !== "Overall" && !s.isMaxed)
+    .map((skill) => {
+      const method = bestMethod(skill.name);
+      return { skill, method, hours: hoursFor(skill, method) };
+    })
+    .sort((a, b) => a.hours - b.hours);
+}
+
 
 export type Intensity = "chill" | "balanced" | "intense";
 export type SessionFilters = { platform: Platform; intensity: Intensity; sessionMins: number };
