@@ -188,6 +188,31 @@ export function adjustedGp(method: Method, baseline = DEFAULT_EARN_RATE): number
   return method.gp - earnRate(method.afk, baseline);
 }
 
+// --- Level overrides ----------------------------------------------------------------------------
+// The official OSRS HiScores only refresh on logout (with delay), so freshly-trained skills lag.
+// A manual override lets the player correct a level; we back-fill the xp from the OSRS xp table.
+export const XP_FOR_99 = 13034431;
+
+// Cumulative XP required to reach a given level (OSRS formula). xpForLevel(99) === XP_FOR_99.
+export function xpForLevel(level: number): number {
+  const L = Math.max(1, Math.min(99, Math.floor(level)));
+  let total = 0;
+  for (let x = 1; x < L; x++) total += Math.floor(x + 300 * Math.pow(2, x / 7));
+  return Math.floor(total / 4);
+}
+
+// Apply manual level overrides onto live HiScores data (override wins; xp back-filled to the
+// level floor, never below the live xp).
+export function applyLevelOverrides(skills: Skill[], overrides: Record<string, number>): Skill[] {
+  if (!overrides || Object.keys(overrides).length === 0) return skills;
+  return skills.map((s) => {
+    const ov = overrides[s.name];
+    if (!ov || ov === s.level) return s;
+    const xp = Math.max(s.xp, xpForLevel(ov));
+    return { ...s, level: ov, xp, isMaxed: ov >= 99, remainingXp: Math.max(0, XP_FOR_99 - xp) };
+  });
+}
+
 // --- Combat-linked maxing plan ------------------------------------------------------------------
 // Attack/Strength/Defence/HP are trained together on Slayer tasks, so summing their hours
 // independently overcounts time-to-max. Model: HP is free (0h, rides along melee); the melee trio

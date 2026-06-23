@@ -8,6 +8,7 @@ import {
   Target,
   RefreshCw,
   Smartphone,
+  Pencil,
   Eye,
   EyeOff,
   Coins,
@@ -30,6 +31,7 @@ import {
   methodsFor,
   platformsFor,
   computeMaxPlan,
+  applyLevelOverrides,
   DEFAULT_EARN_RATE,
   type Skill,
 } from "./skills";
@@ -108,7 +110,9 @@ type StoredSettings = {
 };
 
 export default function App() {
-  const [data, setData] = useState<Skill[]>([]);
+  const [rawData, setRawData] = useState<Skill[]>([]);
+  const [levelOverrides, setLevelOverrides] = useState<Record<string, number>>({});
+  const [editLevels, setEditLevels] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selections, setSelections] = useState<Record<string, number>>({});
@@ -120,7 +124,33 @@ export default function App() {
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
   const [tab, setTab] = useState<"dashboard" | "plan" | "now">("dashboard");
   const goalStore = useGoals();
+
+  // Live HiScores with any manual level overrides applied (HiScores lag freshly-trained skills).
+  const data = useMemo(() => applyLevelOverrides(rawData, levelOverrides), [rawData, levelOverrides]);
   const weekly = useWeekly(data);
+
+  const LEVELS_KEY = "osrs-levels-fr3nchy";
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LEVELS_KEY);
+      if (raw) setLevelOverrides(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  const saveOverride = (skill: string, level: number | null) => {
+    setLevelOverrides((prev) => {
+      const next = { ...prev };
+      if (level === null) delete next[skill];
+      else next[skill] = level;
+      try {
+        localStorage.setItem(LEVELS_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   // Load persisted settings (localStorage) once on mount.
   useEffect(() => {
@@ -201,7 +231,7 @@ export default function App() {
           remainingXp: Math.max(0, XP_FOR_99 - xpNum),
         };
       });
-      setData(skills);
+      setRawData(skills);
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
@@ -595,7 +625,85 @@ export default function App() {
           >
             <Smartphone className="w-3 h-3" /> Mobile only
           </button>
+
+          <button
+            onClick={() => setEditLevels((v) => !v)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
+              editLevels || Object.keys(levelOverrides).length > 0
+                ? "bg-yellow-600/15 text-yellow-500 border-yellow-700/40"
+                : "bg-neutral-900 text-neutral-500 border-neutral-800 hover:text-neutral-300"
+            }`}
+          >
+            <Pencil className="w-3 h-3" /> Edit levels
+            {Object.keys(levelOverrides).length > 0 && (
+              <span className="font-mono">· {Object.keys(levelOverrides).length}</span>
+            )}
+          </button>
         </div>
+
+        {editLevels && (
+          <div className="bg-neutral-900 border border-neutral-800 rounded-[1.5rem] p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">
+                Manual levels — override lagging HiScores
+              </p>
+              {Object.keys(levelOverrides).length > 0 && (
+                <button
+                  onClick={() => {
+                    setLevelOverrides({});
+                    try {
+                      localStorage.removeItem(LEVELS_KEY);
+                    } catch {
+                      /* ignore */
+                    }
+                  }}
+                  className="text-[9px] font-black text-neutral-500 hover:text-yellow-500 uppercase tracking-widest"
+                >
+                  Reset all to live
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              {rawData
+                .filter((s) => s.name !== "Overall")
+                .map((s) => {
+                  const ov = levelOverrides[s.name];
+                  const overridden = ov !== undefined && ov !== s.level;
+                  return (
+                    <div
+                      key={s.name}
+                      className={`flex items-center gap-2 bg-neutral-950 border rounded-xl px-2.5 py-2 ${
+                        overridden ? "border-yellow-700/40" : "border-neutral-800"
+                      }`}
+                    >
+                      <span className="text-[10px] font-bold text-neutral-400 uppercase truncate flex-1">
+                        {s.name}
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={99}
+                        value={ov ?? s.level}
+                        onChange={(e) => {
+                          const n = parseInt(e.target.value);
+                          saveOverride(s.name, isNaN(n) ? null : Math.max(1, Math.min(99, n)));
+                        }}
+                        className="w-12 bg-neutral-900 border border-neutral-800 rounded-md px-1.5 py-1 text-xs font-mono font-black text-white text-center focus:outline-none focus:ring-1 focus:ring-yellow-600"
+                      />
+                      {overridden && (
+                        <span className="text-[8px] text-neutral-600 font-mono" title={`Live: ${s.level}`}>
+                          ·{s.level}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+            <p className="text-[10px] text-neutral-600">
+              Levels back-fill XP from the OSRS table. Clears automatically when you set it back to the live value, or use Sync Live once HiScores catch up.
+            </p>
+          </div>
+        )}
 
         <SkillTable
           skills={sortedVisibleSkills}
