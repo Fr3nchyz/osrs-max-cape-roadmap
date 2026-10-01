@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Wallet } from "lucide-react";
 import { formatFullGp } from "@/lib/format";
 import { weeklyHours } from "@/lib/companion/goal";
@@ -128,12 +128,29 @@ function NumberField({
   disabled?: boolean;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
-  const shown = draft ?? String(Number((value / scale).toFixed(6)));
+  const problemId = useId();
+  const committed = String(Number((value / scale).toFixed(6)));
+  const shown = draft ?? committed;
+
+  // While the typed text differs from what the maths uses, say so.
+  const typed = draft === null ? null : Number(draft);
+  const problem =
+    draft === null || typed === null
+      ? null
+      : draft.trim() === "" || !Number.isFinite(typed) || typed < 0
+        ? `Not a valid amount. Still using ${committed}.`
+        : max !== undefined && typed > max
+          ? `Capped at ${max}. Using ${committed}.`
+          : null;
 
   return (
     <label className={`block min-w-0 ${disabled ? "opacity-50" : ""}`}>
       <span className={LABEL}>{label}</span>
-      <span className="mt-1.5 flex items-center bg-neutral-950 border border-neutral-800 rounded-xl focus-within:ring-1 focus-within:ring-yellow-600">
+      <span
+        className={`mt-1.5 flex items-center bg-neutral-950 border rounded-xl focus-within:ring-1 ${
+          problem ? "border-red-800 focus-within:ring-red-600" : "border-neutral-800 focus-within:ring-yellow-600"
+        }`}
+      >
         <input
           type="number"
           inputMode="decimal"
@@ -142,6 +159,8 @@ function NumberField({
           step={step}
           value={shown}
           disabled={disabled}
+          aria-invalid={problem !== null}
+          aria-describedby={problem ? problemId : undefined}
           onChange={(e) => {
             const raw = e.target.value;
             setDraft(raw);
@@ -155,7 +174,13 @@ function NumberField({
         />
         <span className="pr-4 text-[11px] font-black text-neutral-500 uppercase tracking-wider whitespace-nowrap">{unit}</span>
       </span>
-      {hint && <span className="mt-1 block text-[11px] text-neutral-500">{hint}</span>}
+      {problem ? (
+        <span id={problemId} className="mt-1 block text-[11px] text-red-300">
+          {problem}
+        </span>
+      ) : (
+        hint && <span className="mt-1 block text-[11px] text-neutral-500">{hint}</span>
+      )}
     </label>
   );
 }

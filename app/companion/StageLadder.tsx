@@ -25,7 +25,7 @@ export default function StageLadder({ stage, className = "" }: { stage: FundingS
 
       {stage === null && (
         <div className="mt-4">
-          <Notice>The stage comes from the funding gap, which needs the live T-bow price.</Notice>
+          <Notice>The stage comes from the funding gap, which needs live prices. See the funding card.</Notice>
         </div>
       )}
 

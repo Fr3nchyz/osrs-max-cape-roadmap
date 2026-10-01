@@ -118,9 +118,12 @@ export async function fetchMapping(): Promise<WikiMappingEntry[]> {
   return wikiFetch<WikiMappingEntry[]>("mapping");
 }
 
-/** Most recent trade on each side, for every tradeable item. */
-export async function fetchLatest(): Promise<Record<string, WikiLatestEntry>> {
-  const body = await wikiFetch<{ data: Record<string, WikiLatestEntry> }>("latest");
+/** Most recent trade on each side, for every tradeable item (or just `itemId`). */
+export async function fetchLatest(itemId?: number): Promise<Record<string, WikiLatestEntry>> {
+  const body = await wikiFetch<{ data: Record<string, WikiLatestEntry> }>(
+    "latest",
+    itemId === undefined ? {} : { id: itemId },
+  );
   return body.data;
 }
 

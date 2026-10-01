@@ -49,7 +49,7 @@ export default function Checklist({ className = "", evaluation, stage, ownsTbow,
             title={`${remaining} check${remaining === 1 ? "" : "s"} remaining`}
             body={
               evaluation === null
-                ? "The automatic checks are waiting for the live T-bow price."
+                ? "The automatic checks are waiting for live prices."
                 : remaining === 0
                   ? "Every check passes, but the gap has not reached the purchase window yet."
                   : "Buy only when every check passes and the stage is the purchase window."

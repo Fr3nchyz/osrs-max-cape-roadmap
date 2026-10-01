@@ -76,9 +76,12 @@ describe("parseBankMemoryTsv", () => {
     expect(skipped).toBe(1);
   });
 
-  it("does not count a repeated header (two pastes back to back) as skipped", () => {
-    const text = `${HEADER}\n4151\tAbyssal whip\t1\n${HEADER}\n314\tFeather\t5000`;
-    expect(parseBankMemoryTsv(text).skipped).toBe(0);
+  it("rejects a repeated header (two pastes back to back) instead of double counting", () => {
+    const once = `${HEADER}\n995\tCoins\t50000000\n4151\tAbyssal whip\t1`;
+    expect(() => parseBankMemoryTsv(`${once}\n${once}`)).toThrow(/more than one bank/);
+    expect(() => parseBankMemoryTsv(`${once}\r\n\r\n${HEADER.toUpperCase()}\r\n314\tFeather\t5000`)).toThrow(
+      /more than one bank/
+    );
   });
 
   it("merges duplicate ids by summing quantity and keeps the first name and position", () => {

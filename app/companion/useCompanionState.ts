@@ -10,8 +10,14 @@ type Rec = Record<string, unknown>;
 const isRec = (v: unknown): v is Rec => typeof v === "object" && v !== null && !Array.isArray(v);
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
+/** Allowance for a backup made on a device whose clock runs a little ahead. */
+const CLOCK_SKEW_MS = 5 * 60_000;
+
 function mergeBank(raw: unknown): BankImport | null {
   if (!isRec(raw) || typeof raw.importedAt !== "string" || !Array.isArray(raw.items)) return null;
+  // An unparseable or future date would make the import look fresh forever.
+  const importedMs = Date.parse(raw.importedAt);
+  if (Number.isNaN(importedMs) || importedMs > Date.now() + CLOCK_SKEW_MS) return null;
   const items: BankItem[] = raw.items.filter(
     (i): i is BankItem =>
       isRec(i) && Number.isInteger(i.itemId) && typeof i.name === "string" && isNum(i.quantity) && i.quantity > 0
@@ -63,6 +69,8 @@ export function mergeState(raw: unknown): CompanionState {
 // "not loaded" snapshot (null) and swaps in the stored state right after
 // hydration -- the load-on-mount of app/useGoals.ts, minus a setState-in-effect.
 let current: CompanionState | null = null;
+/** True after the last save failed to reach localStorage (full, blocked, private mode). */
+let saveFailed = false;
 const listeners = new Set<() => void>();
 
 function load(): CompanionState {
@@ -105,16 +113,22 @@ function save(next: CompanionState) {
   current = next;
   try {
     localStorage.setItem(COMPANION_STORAGE_KEY, JSON.stringify(next));
+    saveFailed = false;
   } catch {
-    /* storage unavailable -- keep working in memory */
+    // Storage unavailable: keep working in memory, but say so (see saveFailed).
+    saveFailed = true;
   }
   emit();
 }
+
+const getSaveFailed = () => saveFailed;
+const getServerSaveFailed = () => false;
 
 export type CompanionUpdate = Partial<CompanionState> | ((prev: CompanionState) => CompanionState);
 
 export function useCompanionState() {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const unsaved = useSyncExternalStore(subscribe, getSaveFailed, getServerSaveFailed);
 
   /** Patch or transform the state; saved on every change. */
   const update = useCallback((change: CompanionUpdate) => {
@@ -125,5 +139,5 @@ export function useCompanionState() {
   /** Replace everything (backup restore). */
   const replace = useCallback((next: CompanionState) => save(next), []);
 
-  return { state: snapshot ?? DEFAULT_STATE, ready: snapshot !== null, update, replace };
+  return { state: snapshot ?? DEFAULT_STATE, ready: snapshot !== null, unsaved, update, replace };
 }

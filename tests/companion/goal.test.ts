@@ -262,14 +262,14 @@ describe("evaluateChecklist", () => {
     r.items.find((i) => i.id === id)!.passed;
 
   it("returns one item per CHECKLIST entry, in order, with its label and kind", () => {
-    const r = evaluateChecklist(state(), computeFunding(state(), PLAN_PRICE, null), null, NOW);
+    const r = evaluateChecklist(state(), computeFunding(state(), PLAN_PRICE, null), null, 3, NOW);
     expect(r.items.map(({ id, label, auto }) => ({ id, label, auto }))).toEqual(CHECKLIST);
   });
 
   it("passes everything for a funded, freshly imported, fully ticked plan", () => {
     expect(funded.source).toBe("bank");
     expect(funded.gapGp).toBe(0);
-    const r = evaluateChecklist(ready, funded, 3, NOW);
+    const r = evaluateChecklist(ready, funded, 3, 3, NOW);
     expect(r.items.every((i) => i.passed)).toBe(true);
     expect(r.allPassed).toBe(true);
   });
@@ -277,18 +277,18 @@ describe("evaluateChecklist", () => {
   it("fails allPassed when any single check fails", () => {
     for (const id of MANUAL_IDS) {
       const s = { ...ready, checklist: { ...ready.checklist, [id]: false } };
-      const r = evaluateChecklist(s, funded, 3, NOW);
+      const r = evaluateChecklist(s, funded, 3, 3, NOW);
       expect(passed(r, id)).toBe(false);
       expect(r.allPassed).toBe(false);
     }
-    expect(evaluateChecklist(ready, funded, null, NOW).allPassed).toBe(false);
-    expect(evaluateChecklist(ready, { ...funded, gapGp: 1 }, 3, NOW).allPassed).toBe(false);
+    expect(evaluateChecklist(ready, funded, null, 3, NOW).allPassed).toBe(false);
+    expect(evaluateChecklist(ready, { ...funded, gapGp: 1 }, 3, 3, NOW).allPassed).toBe(false);
   });
 
   it("evaluates auto items from data and ignores manual ticks for them", () => {
     const s = state({ checklist: allTicked });
     const unfunded = computeFunding(s, PLAN_PRICE, null);
-    const r = evaluateChecklist(s, unfunded, null, NOW);
+    const r = evaluateChecklist(s, unfunded, null, 3, NOW);
     expect(passed(r, "priceFresh")).toBe(false);
     expect(passed(r, "reserveCovered")).toBe(false);
     expect(passed(r, "proceedsRecalculated")).toBe(false);
@@ -297,27 +297,27 @@ describe("evaluateChecklist", () => {
   });
 
   it("only counts a manual tick of exactly true", () => {
-    const r = evaluateChecklist(state({ checklist: { kitsKept: false } }), funded, 3, NOW);
+    const r = evaluateChecklist(state({ checklist: { kitsKept: false } }), funded, 3, 3, NOW);
     for (const id of MANUAL_IDS) expect(passed(r, id)).toBe(false);
   });
 
   it("checks price freshness against PRICE_FRESH_MINUTES", () => {
     expect(PRICE_FRESH_MINUTES).toBe(15);
-    expect(passed(evaluateChecklist(ready, funded, 0, NOW), "priceFresh")).toBe(true);
-    expect(passed(evaluateChecklist(ready, funded, 15, NOW), "priceFresh")).toBe(true);
-    expect(passed(evaluateChecklist(ready, funded, 15.01, NOW), "priceFresh")).toBe(false);
-    expect(passed(evaluateChecklist(ready, funded, null, NOW), "priceFresh")).toBe(false);
+    expect(passed(evaluateChecklist(ready, funded, 0, 3, NOW), "priceFresh")).toBe(true);
+    expect(passed(evaluateChecklist(ready, funded, 15, 3, NOW), "priceFresh")).toBe(true);
+    expect(passed(evaluateChecklist(ready, funded, 15.01, 3, NOW), "priceFresh")).toBe(false);
+    expect(passed(evaluateChecklist(ready, funded, null, 3, NOW), "priceFresh")).toBe(false);
   });
 
   it("passes reserveCovered only at a zero gap", () => {
-    expect(passed(evaluateChecklist(ready, { ...funded, gapGp: 0 }, 3, NOW), "reserveCovered")).toBe(true);
-    expect(passed(evaluateChecklist(ready, { ...funded, gapGp: 1 }, 3, NOW), "reserveCovered")).toBe(false);
+    expect(passed(evaluateChecklist(ready, { ...funded, gapGp: 0 }, 3, 3, NOW), "reserveCovered")).toBe(true);
+    expect(passed(evaluateChecklist(ready, { ...funded, gapGp: 1 }, 3, 3, NOW), "reserveCovered")).toBe(false);
   });
 
   it("needs bank-sourced funding from an import no older than BANK_IMPORT_FRESH_HOURS", () => {
     expect(BANK_IMPORT_FRESH_HOURS).toBe(24);
     const at = (importedAt: string) =>
-      passed(evaluateChecklist({ ...ready, bank: { importedAt, items: [] } }, funded, 3, NOW), "proceedsRecalculated");
+      passed(evaluateChecklist({ ...ready, bank: { importedAt, items: [] } }, funded, 3, 3, NOW), "proceedsRecalculated");
 
     expect(at(hoursAgo(0))).toBe(true);
     expect(at(hoursAgo(24))).toBe(true);
@@ -326,18 +326,36 @@ describe("evaluateChecklist", () => {
 
     // A fresh import doesn't count while funding is still manual.
     const manual = computeFunding({ ...ready, useBankImport: false }, PLAN_PRICE, null);
-    expect(passed(evaluateChecklist(ready, manual, 3, NOW), "proceedsRecalculated")).toBe(false);
+    expect(passed(evaluateChecklist(ready, manual, 3, 3, NOW), "proceedsRecalculated")).toBe(false);
 
     // Bank-sourced funding with no import on the state fails too.
-    expect(passed(evaluateChecklist({ ...ready, bank: null }, funded, 3, NOW), "proceedsRecalculated")).toBe(false);
+    expect(passed(evaluateChecklist({ ...ready, bank: null }, funded, 3, 3, NOW), "proceedsRecalculated")).toBe(false);
   });
 
   it("fails a 25-hour-old import even when everything else passes", () => {
     const stale = { ...ready, bank: { importedAt: hoursAgo(25), items: [] } };
-    const r = evaluateChecklist(stale, funded, 3, NOW);
+    const r = evaluateChecklist(stale, funded, 3, 3, NOW);
     expect(passed(r, "proceedsRecalculated")).toBe(false);
     expect(r.items.filter((i) => !i.passed).map((i) => i.id)).toEqual(["proceedsRecalculated"]);
     expect(r.allPassed).toBe(false);
+  });
+
+  it("fails an import dated in the future, which would otherwise stay fresh forever", () => {
+    const future = { ...ready, bank: { importedAt: hoursAgo(-1), items: [] } };
+    expect(passed(evaluateChecklist(future, funded, 3, 3, NOW), "proceedsRecalculated")).toBe(false);
+    const farFuture = { ...ready, bank: { importedAt: "2099-01-01T00:00:00Z", items: [] } };
+    expect(passed(evaluateChecklist(farFuture, funded, 3, 3, NOW), "proceedsRecalculated")).toBe(false);
+  });
+
+  it("needs the item prices valuing the import to be at most PRICE_FRESH_MINUTES old", () => {
+    const at = (itemAge: number | null) =>
+      passed(evaluateChecklist(ready, funded, 3, itemAge, NOW), "proceedsRecalculated");
+    expect(at(0)).toBe(true);
+    expect(at(15)).toBe(true);
+    expect(at(15.01)).toBe(false);
+    expect(at(null)).toBe(false);
+    // Stale item prices don't touch the T-bow price check.
+    expect(passed(evaluateChecklist(ready, funded, 3, 120, NOW), "priceFresh")).toBe(true);
   });
 });
 

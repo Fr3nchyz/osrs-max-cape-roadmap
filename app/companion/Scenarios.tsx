@@ -42,7 +42,7 @@ export default function Scenarios({ results, weeklyHours, weekdayHours, weekendH
         </div>
       ) : results === null ? (
         <div className="mt-4">
-          <Notice>Scenarios start from the funding gap, which needs the live T-bow price.</Notice>
+          <Notice>Scenarios start from the funding gap, which needs live prices. See the funding card.</Notice>
         </div>
       ) : (
         <>

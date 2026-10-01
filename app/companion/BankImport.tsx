@@ -138,6 +138,15 @@ export default function BankImport({ className = "", state, update, latest, valu
             </div>
           )}
 
+          {valuation && latest.error && latest.data && (
+            <div className="mt-4">
+              <Notice tone="warn" action={<RetryButton onClick={latest.reload} busy={latest.loading} />}>
+                Price refresh failed ({latest.error}). Still valued at prices fetched{" "}
+                {formatAge(minutesSince(latest.data.fetchedAt, now))}.
+              </Notice>
+            </div>
+          )}
+
           {valuation && (
             <>
               <dl className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -154,7 +163,11 @@ export default function BankImport({ className = "", state, update, latest, valu
                   sub={plural(valuation.items.filter((i) => i.kept).length, "item")}
                 />
                 <Total label="Unpriced" value={valuation.unpricedCount.toLocaleString("en-US")} sub="no GE price" />
-                <Total label="Imported" value={formatAge(minutesSince(bank.importedAt, now))} />
+                <Total
+                  label="Imported"
+                  value={formatAge(minutesSince(bank.importedAt, now))}
+                  sub={latest.data ? `prices ${formatAge(minutesSince(latest.data.fetchedAt, now))}` : undefined}
+                />
               </dl>
 
               <ItemTable

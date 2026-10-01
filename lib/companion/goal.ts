@@ -103,7 +103,11 @@ export const BANK_IMPORT_FRESH_HOURS = 24;
 export const CHECKLIST: { id: ChecklistId; label: string; auto: boolean }[] = [
   { id: "priceFresh", label: "Live T-bow price refreshed in the last 15 minutes", auto: true },
   { id: "reserveCovered", label: "Capital covers the bow plus your cash reserve", auto: true },
-  { id: "proceedsRecalculated", label: "Sale proceeds recalculated from a bank import in the last 24 hours", auto: true },
+  {
+    id: "proceedsRecalculated",
+    label: "Sale proceeds recalculated from a bank import in the last 24 hours, at fresh prices",
+    auto: true,
+  },
   { id: "kitsKept", label: "Minimum melee and magic kits stay usable", auto: false },
   { id: "fletchingUntouched", label: "Fletching materials stay untouched", auto: false },
   { id: "plannedUse", label: "At least 50 of the next 100 focused PvM hours use the bow", auto: false },
@@ -196,21 +200,27 @@ export function scenarios(gapGp: number, weekdayHours: number, weekendHours: num
 }
 
 /**
- * Auto items: priceFresh = priceAgeMinutes !== null && <= PRICE_FRESH_MINUTES;
+ * Auto items: priceFresh = the T-bow price is at most PRICE_FRESH_MINUTES old;
  * reserveCovered = funding.gapGp === 0; proceedsRecalculated = funding.source
- * === "bank" and the bank import is at most BANK_IMPORT_FRESH_HOURS old.
+ * === "bank", the bank import is at most BANK_IMPORT_FRESH_HOURS old (and not
+ * in the future), and the item prices valuing it are at most
+ * PRICE_FRESH_MINUTES old. Ages are null when nothing has been fetched.
  * Manual items read state.checklist[id] === true.
  */
 export function evaluateChecklist(
   state: CompanionState,
   funding: Funding,
   priceAgeMinutes: number | null,
+  itemPriceAgeMinutes: number | null,
   now: Date = new Date(),
 ): { items: ChecklistItem[]; allPassed: boolean } {
   const autoPassed: Partial<Record<ChecklistId, boolean>> = {
-    priceFresh: priceAgeMinutes !== null && priceAgeMinutes <= PRICE_FRESH_MINUTES,
+    priceFresh: isFreshPrice(priceAgeMinutes),
     reserveCovered: funding.gapGp === 0,
-    proceedsRecalculated: funding.source === "bank" && isBankImportFresh(state.bank?.importedAt, now),
+    proceedsRecalculated:
+      funding.source === "bank" &&
+      isBankImportFresh(state.bank?.importedAt, now) &&
+      isFreshPrice(itemPriceAgeMinutes),
   };
   const items = CHECKLIST.map(({ id, label, auto }) => ({
     id,
@@ -244,10 +254,18 @@ function clampPct(pct: number): number {
   return Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0;
 }
 
-/** True when `importedAt` parses and is at most BANK_IMPORT_FRESH_HOURS before `now`. */
+function isFreshPrice(ageMinutes: number | null): boolean {
+  return ageMinutes !== null && ageMinutes <= PRICE_FRESH_MINUTES;
+}
+
+/**
+ * True when `importedAt` parses and is 0 to BANK_IMPORT_FRESH_HOURS before
+ * `now`. A future date (bad clock, edited backup) would otherwise pass forever.
+ */
 function isBankImportFresh(importedAt: string | undefined, now: Date): boolean {
   if (importedAt === undefined) return false;
   const importedMs = Date.parse(importedAt);
   if (Number.isNaN(importedMs)) return false;
-  return now.getTime() - importedMs <= BANK_IMPORT_FRESH_HOURS * 3_600_000;
+  const ageMs = now.getTime() - importedMs;
+  return ageMs >= 0 && ageMs <= BANK_IMPORT_FRESH_HOURS * 3_600_000;
 }

@@ -14,6 +14,8 @@ type Props = {
   funding: Funding | null;
   tbow: Remote<TbowPriceResponse>;
   bankStatus: BankStatus;
+  onRetryBank: () => void;
+  bankRetrying: boolean;
   bankImportedAt: string | null;
   slippagePct: number;
   ownsTbow: boolean;
@@ -25,6 +27,8 @@ export default function FundingHero({
   funding,
   tbow,
   bankStatus,
+  onRetryBank,
+  bankRetrying,
   bankImportedAt,
   slippagePct,
   ownsTbow,
@@ -52,8 +56,9 @@ export default function FundingHero({
 
       {bankStatus === "unavailable" && !ownsTbow && (
         <div className="mt-4">
-          <Notice tone="warn">
-            Live prices for your bank import are unavailable, so these numbers use your manual inputs.
+          <Notice tone="error" action={<RetryButton onClick={onRetryBank} busy={bankRetrying} />}>
+            <span className="font-bold">Live prices for your bank import are unavailable,</span> so no gap is shown.
+            Retry, or switch off &ldquo;Use bank import for capital&rdquo; to plan from your manual inputs.
           </Notice>
         </div>
       )}
@@ -171,6 +176,8 @@ function Pending({ tbow, bankStatus }: { tbow: Remote<TbowPriceResponse>; bankSt
       </div>
     );
   }
+  // Bank prices failed: the error notice under this explains it; nothing is loading.
+  if (bankStatus === "unavailable") return null;
   return (
     <div className="mt-3 space-y-3">
       <div className="h-[60px] sm:h-[72px] w-56 rounded-2xl bg-neutral-800/60 animate-pulse" aria-hidden />

@@ -14,7 +14,7 @@ import { valueBank } from "@/lib/companion/bank";
 import type { ChecklistId, LatestPricesResponse, TbowPriceResponse } from "@/lib/companion/types";
 import { useCompanionState } from "./useCompanionState";
 import { useJson, useNow } from "./useLive";
-import { minutesSince } from "./ui";
+import { Notice, minutesSince } from "./ui";
 import CompanionHeader from "./CompanionHeader";
 import FundingHero, { type BankStatus } from "./FundingHero";
 import StageLadder from "./StageLadder";
@@ -28,7 +28,7 @@ import Backup from "./Backup";
 const USERNAME = "fr3nchy";
 
 export default function CompanionPage() {
-  const { state, ready, update, replace } = useCompanionState();
+  const { state, ready, unsaved, update, replace } = useCompanionState();
   const now = useNow();
 
   const tbow = useJson<TbowPriceResponse>("/api/prices/tbow");
@@ -46,11 +46,14 @@ export default function CompanionPage() {
   const wantsBank = state.useBankImport && bank !== null;
   const bankStatus: BankStatus = !wantsBank ? "off" : valuation ? "on" : latest.loading ? "valuing" : "unavailable";
 
-  // Target uses the instant-buy side. No price (or bank still being valued) -> no
-  // funding snapshot at all, rather than a misleading gap.
+  // Target uses the instant-buy side. No price, or a bank import that is wanted
+  // but can't be valued -> no funding snapshot at all, rather than a gap built
+  // from manual fields the user has stopped maintaining.
   const tbowPrice = tbow.data?.high ?? null;
   const funding =
-    ready && tbowPrice !== null && bankStatus !== "valuing" ? computeFunding(state, tbowPrice, valuation) : null;
+    ready && tbowPrice !== null && (bankStatus === "off" || bankStatus === "on")
+      ? computeFunding(state, tbowPrice, valuation)
+      : null;
   const stage = funding
     ? fundingStage(funding.gapGp, state.ownsTbow)
     : ready && state.ownsTbow
@@ -58,7 +61,10 @@ export default function CompanionPage() {
       : null;
 
   const priceAgeMinutes = tbow.data && now > 0 ? minutesSince(tbow.data.fetchedAt, now) : null;
-  const evaluation = funding ? evaluateChecklist(state, funding, priceAgeMinutes, new Date(now)) : null;
+  const itemPriceAgeMinutes = latest.data && now > 0 ? minutesSince(latest.data.fetchedAt, now) : null;
+  const evaluation = funding
+    ? evaluateChecklist(state, funding, priceAgeMinutes, itemPriceAgeMinutes, new Date(now))
+    : null;
   const scenarioResults = funding ? scenarios(funding.gapGp, state.weekdayHours, state.weekendHours) : null;
 
   const checklistDetails: Partial<Record<ChecklistId, string>> = {
@@ -67,7 +73,8 @@ export default function CompanionPage() {
     reserveCovered: funding ? (funding.gapGp === 0 ? "No gap left" : `Gap ${formatGp(funding.gapGp)}`) : undefined,
     proceedsRecalculated:
       funding?.source === "bank" && bank
-        ? `Bank imported ${formatAge(minutesSince(bank.importedAt, now))}`
+        ? `Bank imported ${formatAge(minutesSince(bank.importedAt, now))}` +
+          (itemPriceAgeMinutes === null ? "" : ` · item prices fetched ${formatAge(itemPriceAgeMinutes)}`)
         : bank
           ? "Bank import is not being used for capital"
           : "No bank import yet",
@@ -83,6 +90,14 @@ export default function CompanionPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <CompanionHeader username={USERNAME} onRefresh={refresh} refreshing={tbow.loading} />
 
+        {unsaved && (
+          <Notice tone="error">
+            <span className="font-bold">Changes aren&apos;t being saved.</span> This browser is blocking local storage
+            (it may be full or in private mode), so everything resets when you close the tab. Export a backup to keep
+            your data.
+          </Notice>
+        )}
+
         {!ready ? (
           <div className="flex items-center justify-center gap-3 py-24 text-neutral-500" role="status">
             <RefreshCw className="w-5 h-5 animate-spin text-yellow-600" aria-hidden />
@@ -96,6 +111,8 @@ export default function CompanionPage() {
                 funding={funding}
                 tbow={tbow}
                 bankStatus={bankStatus}
+                onRetryBank={latest.reload}
+                bankRetrying={latest.loading}
                 bankImportedAt={bank?.importedAt ?? null}
                 slippagePct={state.slippagePct}
                 ownsTbow={state.ownsTbow}

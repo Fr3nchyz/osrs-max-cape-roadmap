@@ -46,8 +46,14 @@ export default function Backup({
         throw new Error("Not a companion backup: expected a JSON file with \"version\": 1.");
       }
       if (!window.confirm("Replace your current companion data with this backup?")) return;
-      replace(mergeState(parsed));
-      setMessage({ tone: "info", text: `Restored from ${file.name}.` });
+      const restored = mergeState(parsed);
+      replace(restored);
+      const droppedBank = (parsed as { bank?: unknown }).bank != null && restored.bank === null;
+      setMessage(
+        droppedBank
+          ? { tone: "error", text: `Restored from ${file.name}, without its bank import: its date is missing, invalid or in the future. Paste your bank again.` }
+          : { tone: "info", text: `Restored from ${file.name}.` }
+      );
     } catch (err) {
       setMessage({ tone: "error", text: err instanceof Error ? err.message : String(err) });
     }

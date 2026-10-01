@@ -22,13 +22,16 @@ import {
 
 const NO_ITEMS_MESSAGE =
   "No bank items found — paste the output of Bank Memory's “Copy item data to clipboard”.";
+const SECOND_PASTE_MESSAGE =
+  "This looks like more than one bank paste (the header appears twice). Paste one bank at a time.";
 
 /**
  * Rules: split on \r?\n; trim; skip blank lines; skip a header line (first
  * cell not an integer); each row needs id (integer > 0), name, quantity
  * (integer > 0) separated by tabs, otherwise count it as skipped; merge
  * duplicate ids by summing quantity. Throws an Error with a user-facing
- * message when no valid rows remain.
+ * message when no valid rows remain, or when a second header shows the same
+ * bank was pasted twice (merging would double every quantity).
  */
 export function parseBankMemoryTsv(text: string): { items: BankItem[]; skipped: number } {
   const byId = new Map<number, BankItem>();
@@ -42,9 +45,10 @@ export function parseBankMemoryTsv(text: string): { items: BankItem[]; skipped: 
 
     const isFirstLine = !seenFirstLine;
     seenFirstLine = true;
-    // The header is the first line whose id cell isn't a number; a later
-    // "Item id" line (e.g. two pastes back to back) is a repeated header.
-    if ((isFirstLine && !/^[+-]?\d+$/.test(cells[0])) || /^item id$/i.test(cells[0])) continue;
+    // The header is the first line whose id cell isn't a number. A later
+    // "Item id" line means two pastes back to back.
+    if (isFirstLine && !/^[+-]?\d+$/.test(cells[0])) continue;
+    if (/^item id$/i.test(cells[0])) throw new Error(SECOND_PASTE_MESSAGE);
 
     const itemId = parsePositiveInt(cells[0]);
     const name = cells[1] ?? "";

@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { fetchLatest } from "@/lib/market/wiki";
 import type { LatestPricesResponse, PriceTable } from "@/lib/companion/types";
 
-// Values a bank import. Rides wiki.ts's 60s data cache: every item's quote in one
-// upstream call, trimmed to { high, low } to roughly halve the payload.
+// Values a bank import: every item's quote in one upstream call, trimmed to
+// { high, low } to roughly halve the payload. Uncached for the same reason as
+// /api/prices/tbow: a stale-while-revalidate hit would stamp old prices "now",
+// and the companion's checks trust `fetchedAt`.
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export async function GET() {
   try {
     const latest = await fetchLatest();
