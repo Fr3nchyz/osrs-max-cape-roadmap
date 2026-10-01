@@ -27,6 +27,7 @@ import SkillTable from "./SkillTable";
 import { useGoals } from "./useGoals";
 import { useProgress } from "./useProgress";
 import ProgressPanel from "./ProgressPanel";
+import SectionNav from "./SectionNav";
 import { projectDate } from "./progress";
 import {
   TRAINING_METHODS,
@@ -374,6 +375,8 @@ export default function App() {
               </div>
             </div>
           </div>
+
+          <SectionNav />
 
           <div className="flex items-center gap-3 bg-neutral-900/50 p-1.5 rounded-2xl border border-neutral-800/50 backdrop-blur-xl">
             <button
