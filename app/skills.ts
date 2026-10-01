@@ -33,6 +33,7 @@ export type Skill = {
   xp: number;
   isMaxed: boolean;
   remainingXp: number;
+  estimated?: boolean; // not on the HiScores — value is a fallback guess
 };
 
 export const TRAINING_METHODS: Record<string, Method[]> = {
@@ -199,6 +200,36 @@ export function xpForLevel(level: number): number {
   let total = 0;
   for (let x = 1; x < L; x++) total += Math.floor(x + 300 * Math.pow(2, x / 7));
   return Math.floor(total / 4);
+}
+
+export const XP_FOR_92 = xpForLevel(92); // the "halfway to 99" point
+
+// Level for a given amount of XP (1-99).
+export function levelForXp(xp: number): number {
+  let lvl = 1;
+  while (lvl < 99 && xpForLevel(lvl + 1) <= xp) lvl++;
+  return lvl;
+}
+
+// Levels left to 99 + XP to the next level for one skill.
+export function levelProgress(s: Skill): { levelsLeft: number; xpToNext: number } {
+  if (s.isMaxed || s.level >= 99) return { levelsLeft: 0, xpToNext: 0 };
+  return { levelsLeft: 99 - s.level, xpToNext: Math.max(0, xpForLevel(s.level + 1) - s.xp) };
+}
+
+// Total level across every tracked skill, and the max-cape target (99 × skills).
+export const SKILL_COUNT = Object.keys(TRAINING_METHODS).length; // 24 incl. Sailing
+export const MAX_TOTAL_LEVEL = 99 * SKILL_COUNT;
+export function totalLevel(skills: Skill[]): number {
+  return skills.filter((s) => s.name !== "Overall").reduce((a, s) => a + Math.min(99, s.level), 0);
+}
+
+// Rebuild Skill rows from a raw { skill: xp } map (historical snapshots).
+export function skillsFromXp(xp: Record<string, number>): Skill[] {
+  return Object.entries(xp).map(([name, v]) => {
+    const level = levelForXp(v);
+    return { name, rank: -1, level, xp: v, isMaxed: level >= 99, remainingXp: Math.max(0, XP_FOR_99 - v) };
+  });
 }
 
 // Apply manual level overrides onto live HiScores data (override wins; xp back-filled to the

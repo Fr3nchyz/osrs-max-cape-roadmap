@@ -25,20 +25,23 @@ import SessionPlanner from "./SessionPlanner";
 import NextUp from "./NextUp";
 import SkillTable from "./SkillTable";
 import { useGoals } from "./useGoals";
-import { useWeekly } from "./useWeekly";
+import { useProgress } from "./useProgress";
+import ProgressPanel from "./ProgressPanel";
+import { projectDate } from "./progress";
 import {
   TRAINING_METHODS,
   methodsFor,
   platformsFor,
   computeMaxPlan,
   applyLevelOverrides,
+  totalLevel,
+  MAX_TOTAL_LEVEL,
   DEFAULT_EARN_RATE,
   type Skill,
 } from "./skills";
 
 const USERNAME = "fr3nchy";
 const XP_FOR_99 = 13034431;
-const XP_FOR_92 = 6517253;
 const SAILING_FALLBACK_XP = 3972294; // Level 87
 const STORAGE_KEY = "osrs-maxcape-fr3nchy";
 
@@ -107,6 +110,7 @@ type StoredSettings = {
   hoursPerDay: number;
   earnRate: number;
   mobileOnly: boolean;
+  period: "week" | "month";
 };
 
 export default function App() {
@@ -121,13 +125,14 @@ export default function App() {
   const [earnRate, setEarnRate] = useState(DEFAULT_EARN_RATE);
   const [showMaxed, setShowMaxed] = useState(false);
   const [mobileOnly, setMobileOnly] = useState(false);
+  const [period, setPeriod] = useState<"week" | "month">("week");
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
   const [tab, setTab] = useState<"dashboard" | "plan" | "now">("dashboard");
   const goalStore = useGoals();
 
   // Live HiScores with any manual level overrides applied (HiScores lag freshly-trained skills).
   const data = useMemo(() => applyLevelOverrides(rawData, levelOverrides), [rawData, levelOverrides]);
-  const weekly = useWeekly(data);
+  const progress = useProgress(data, selections);
 
   const LEVELS_KEY = "osrs-levels-fr3nchy";
   useEffect(() => {
@@ -163,6 +168,7 @@ export default function App() {
         if (typeof s.hoursPerDay === "number") setHoursPerDay(s.hoursPerDay);
         if (typeof s.earnRate === "number") setEarnRate(s.earnRate);
         if (typeof s.mobileOnly === "boolean") setMobileOnly(s.mobileOnly);
+        if (s.period === "week" || s.period === "month") setPeriod(s.period);
       }
     } catch {
       /* ignore corrupt storage */
@@ -174,7 +180,14 @@ export default function App() {
       const raw = localStorage.getItem(STORAGE_KEY);
       const current: StoredSettings = raw
         ? JSON.parse(raw)
-        : { methods: {}, orderType: "efficient", hoursPerDay: 4, earnRate: DEFAULT_EARN_RATE, mobileOnly: false };
+        : {
+            methods: {},
+            orderType: "efficient",
+            hoursPerDay: 4,
+            earnRate: DEFAULT_EARN_RATE,
+            mobileOnly: false,
+            period: "week",
+          };
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ ...current, ...updates })
@@ -213,6 +226,7 @@ export default function App() {
             xp: xpNum,
             isMaxed: lvlNum >= 99,
             remainingXp: Math.max(0, XP_FOR_99 - xpNum),
+            estimated: !skillData || !(parseInt(String(skillData.xp)) > 0),
           };
         }
 
@@ -271,11 +285,13 @@ export default function App() {
       totalTrueCost: maxPlan.trueCost,
       bankroll: maxPlan.bankroll,
       skillsRemaining: maxPlan.skillsRemaining,
+      totalLevel: totalLevel(data),
+      levelsToGo: Math.max(0, MAX_TOTAL_LEVEL - totalLevel(data)),
       xpToGo,
       overallPct: Math.max(0, Math.min(100, ((needed - xpToGo) / needed) * 100)),
       breakdown: maxPlan.lines.filter((l) => l.hours > 0),
     };
-  }, [maxPlan]);
+  }, [maxPlan, data]);
 
   const maxDate = useMemo(() => {
     if (!dashboard) return null;
@@ -288,6 +304,13 @@ export default function App() {
       day: "numeric",
     });
   }, [dashboard, hoursPerDay]);
+
+  // Max date if you keep playing like the last 4 weeks (vs the slider's assumed hours/day).
+  const paceDate = useMemo(() => {
+    if (!dashboard || !progress.pace) return null;
+    const t = projectDate(progress.now, dashboard.totalHours, progress.pace.hoursPerDay);
+    return t ? new Date(t).toLocaleDateString("en-US", { month: "short", year: "numeric", day: "numeric" }) : null;
+  }, [dashboard, progress.pace, progress.now]);
 
   const sortedVisibleSkills = useMemo(() => {
     const visible = data.filter((s) => {
@@ -422,27 +445,63 @@ export default function App() {
           <section className="space-y-3">
             {/* Dense stat strip */}
             <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
-              {[
-                { label: "Time to max", value: `${Math.ceil(dashboard.totalHours)}h`, cls: "text-yellow-500" },
-                { label: "Maxing date", value: maxDate ?? "—", cls: "text-white", small: true },
-                { label: "Overall", value: `${dashboard.overallPct.toFixed(1)}%`, cls: "text-white" },
-                { label: "XP to go", value: `${(dashboard.xpToGo / 1_000_000).toFixed(1)}M`, cls: "text-white" },
-                { label: "Skills left", value: `${dashboard.skillsRemaining}`, cls: "text-white" },
-                { label: "Real cost", value: `−${Math.abs(dashboard.totalTrueCost / 1_000_000).toFixed(0)}M`, cls: "text-red-500" },
-                { label: "Bankroll", value: `−${(dashboard.bankroll / 1_000_000).toFixed(0)}M`, cls: "text-red-400" },
-                {
-                  label: `This week${weekly.source === "wom" ? " · WOM" : ""}`,
-                  value: weekly.total > 0 ? `+${(weekly.total / 1000).toFixed(0)}k` : "—",
-                  cls: weekly.total > 0 ? "text-green-500" : "text-neutral-600",
-                },
-              ].map((m) => (
-                <div key={m.label} className="bg-neutral-900 border border-neutral-800 rounded-2xl px-3 py-2.5">
-                  <p className="text-[8px] font-black text-neutral-600 uppercase tracking-widest truncate">{m.label}</p>
-                  <p className={`font-black font-mono tracking-tighter leading-none mt-1.5 ${m.small ? "text-base" : "text-2xl"} ${m.cls}`}>
-                    {m.value}
-                  </p>
-                </div>
-              ))}
+              {(() => {
+                const fmtK = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : `${Math.round(n / 1000)}k`);
+                const week = progress.week;
+                const month = progress.month;
+                const cells: { label: string; value: string; sub?: string; cls: string; small?: boolean; title?: string }[] = [
+                  { label: "Time to max", value: `${Math.ceil(dashboard.totalHours)}h`, sub: `${dashboard.overallPct.toFixed(1)}% of the way`, cls: "text-yellow-500" },
+                  {
+                    label: "Maxing date",
+                    value: maxDate ?? "—",
+                    sub: paceDate ? `at real pace: ${paceDate}` : `at ${hoursPerDay}h/day`,
+                    cls: "text-white",
+                    small: true,
+                  },
+                  {
+                    label: "Total level",
+                    value: dashboard.totalLevel.toLocaleString(),
+                    sub: `${dashboard.levelsToGo} lv to ${MAX_TOTAL_LEVEL.toLocaleString()}`,
+                    cls: "text-white",
+                  },
+                  { label: "XP to go", value: `${(dashboard.xpToGo / 1_000_000).toFixed(1)}M`, sub: `${dashboard.skillsRemaining} skills left`, cls: "text-white" },
+                  {
+                    label: `This week${progress.source === "wom" ? " · WOM" : ""}`,
+                    value: week && week.xp > 0 ? `+${fmtK(week.xp)}` : "—",
+                    sub: week ? `+${week.levels} lv · ${week.hours.toFixed(1)}h max-time` : undefined,
+                    cls: week && week.xp > 0 ? "text-green-500" : "text-neutral-600",
+                  },
+                  {
+                    label: new Date().toLocaleDateString("en-US", { month: "long" }),
+                    value: month && month.xp > 0 ? `+${fmtK(month.xp)}` : "—",
+                    sub: month ? `+${month.levels} lv · ${month.hours.toFixed(1)}h max-time` : undefined,
+                    cls: month && month.xp > 0 ? "text-green-500" : "text-neutral-600",
+                  },
+                  {
+                    label: "Real pace · 4 wk",
+                    value: progress.pace ? `${progress.pace.hoursPerDay.toFixed(1)}h` : "—",
+                    sub: `per day · target ${hoursPerDay}h`,
+                    cls: progress.pace && progress.pace.hoursPerDay >= hoursPerDay ? "text-green-500" : "text-white",
+                    title: "Max-time done per day over the last 28 days (how fast your time-to-max is actually dropping).",
+                  },
+                  {
+                    label: "Real cost",
+                    value: `−${Math.abs(dashboard.totalTrueCost / 1_000_000).toFixed(0)}M`,
+                    sub: `bankroll −${(dashboard.bankroll / 1_000_000).toFixed(0)}M`,
+                    cls: "text-red-500",
+                    title: "Real cost includes the GP you forgo by not money-making. Bankroll = supplies you must fund.",
+                  },
+                ];
+                return cells.map((m) => (
+                  <div key={m.label} title={m.title} className="bg-neutral-900 border border-neutral-800 rounded-2xl px-3 py-2.5">
+                    <p className="text-[8px] font-black text-neutral-600 uppercase tracking-widest truncate">{m.label}</p>
+                    <p className={`font-black font-mono tracking-tighter leading-none mt-1.5 ${m.small ? "text-base" : "text-2xl"} ${m.cls}`}>
+                      {m.value}
+                    </p>
+                    {m.sub && <p className="text-[9px] text-neutral-500 font-mono mt-1 truncate">{m.sub}</p>}
+                  </div>
+                ));
+              })()}
             </div>
 
             {/* Lower row: density · lists · controls */}
@@ -580,6 +639,18 @@ export default function App() {
           </section>
         )}
 
+        {tab === "dashboard" && dashboard && progress.ready && (
+          <ProgressPanel
+            progress={progress}
+            skills={data}
+            selections={selections}
+            hoursPerDay={hoursPerDay}
+            totalHours={dashboard.totalHours}
+            currentTotal={dashboard.totalLevel}
+            maxTotal={MAX_TOTAL_LEVEL}
+          />
+        )}
+
         {/* Section Controls */}
         {tab === "dashboard" && (
         <>
@@ -609,6 +680,23 @@ export default function App() {
             >
               <ListOrdered className="w-3 h-3" /> XP Remaining
             </button>
+          </div>
+
+          <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800">
+            {(["week", "month"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => {
+                  setPeriod(p);
+                  persist({ period: p });
+                }}
+                className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
+                  period === p ? "bg-neutral-800 text-yellow-500 shadow-inner" : "text-neutral-500 hover:text-neutral-300"
+                }`}
+              >
+                This {p}
+              </button>
+            ))}
           </div>
 
           <button
@@ -709,7 +797,8 @@ export default function App() {
           skills={sortedVisibleSkills}
           selections={selections}
           onMethodChange={handleMethodChange}
-          weekly={weekly.gains}
+          gains={(period === "week" ? progress.week : progress.month)?.bySkill ?? {}}
+          period={period}
           earnRate={earnRate}
           byName={maxPlan?.byName ?? {}}
         />
