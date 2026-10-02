@@ -40,6 +40,7 @@ import {
   totalLevel,
   MAX_TOTAL_LEVEL,
   DEFAULT_EARN_RATE,
+  ICON_MAP,
   type Skill,
 } from "./skills";
 
@@ -528,22 +529,61 @@ export default function App() {
                     const percent = (s.hours / dashboard.totalHours) * 100;
                     if (percent < 0.1) return null;
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={s.name}
                         style={{ width: `${percent}%` }}
+                        aria-label={`${s.name}: ${Math.round(s.hours)}h, ${Math.round(percent)}% of the time left`}
+                        aria-pressed={hoveredSkill === s.name}
                         onMouseEnter={() => setHoveredSkill(s.name)}
                         onMouseLeave={() => setHoveredSkill(null)}
-                        className={`${SKILL_COLORS[s.name] || "bg-zinc-600"} h-full transition-all hover:brightness-125 border-r border-neutral-950/20 last:border-0 cursor-help`}
+                        onFocus={() => setHoveredSkill(s.name)}
+                        onBlur={() => setHoveredSkill(null)}
+                        onClick={() => setHoveredSkill(s.name)}
+                        className={`${SKILL_COLORS[s.name] || "bg-zinc-600"} h-full transition-all hover:brightness-125 focus-visible:brightness-125 focus:outline-none border-r border-neutral-950/20 last:border-0 cursor-pointer ${
+                          hoveredSkill && hoveredSkill !== s.name ? "opacity-50" : ""
+                        }`}
                       />
                     );
                   })}
                 </div>
+                {(() => {
+                  const line = dashboard.breakdown.find((l) => l.name === hoveredSkill);
+                  if (!line) {
+                    return (
+                      <p className="mt-2 h-8 flex items-center text-[10px] text-neutral-600">
+                        Hover or tap a segment for details
+                      </p>
+                    );
+                  }
+                  const pct = Math.round((line.hours / dashboard.totalHours) * 100);
+                  const xp = line.remainingXp - (line.downtimeXp ?? 0);
+                  return (
+                    <div className="mt-2 h-8 flex items-center gap-2 min-w-0" aria-live="polite">
+                      <span className="text-lg leading-none shrink-0" aria-hidden>
+                        {ICON_MAP[line.name] || "❓"}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate">
+                          {line.name} <span className="text-yellow-500 font-mono">{Math.round(line.hours)}h</span>{" "}
+                          <span className="text-neutral-500 font-mono normal-case">· {pct}% of time left</span>
+                        </p>
+                        <p className="text-[10px] text-neutral-500 mt-1 truncate">
+                          {line.method.name} · {(xp / 1_000_000).toFixed(xp >= 10_000_000 ? 0 : 1)}M XP to 99
+                          {line.downtimeXp ? " (rest done in downtime)" : ""}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3">
                   {dashboard.breakdown.map((s) => {
                     const percent = (s.hours / dashboard.totalHours) * 100;
                     return (
                       <div
                         key={s.name}
+                        onMouseEnter={() => setHoveredSkill(s.name)}
+                        onMouseLeave={() => setHoveredSkill(null)}
                         className={`flex items-center justify-between px-1.5 py-1 rounded-lg transition-colors ${
                           hoveredSkill === s.name ? "bg-neutral-800" : ""
                         }`}
