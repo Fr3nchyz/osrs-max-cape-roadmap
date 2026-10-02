@@ -8,6 +8,45 @@ import { Card, CardTitle, Notice } from "./ui";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+/** The Max Cape Roadmap's own localStorage keys, carried in the same backup file. */
+const ROADMAP_KEYS = [
+  "osrs-maxcape-fr3nchy",
+  "osrs-levels-fr3nchy",
+  "osrs-plan-fr3nchy",
+  "osrs-brainstorm-fr3nchy",
+  "osrs-xp-history-fr3nchy",
+] as const;
+
+function readRoadmap(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const key of ROADMAP_KEYS) {
+    try {
+      const v = localStorage.getItem(key);
+      if (v !== null) out[key] = v;
+    } catch {
+      /* storage unavailable */
+    }
+  }
+  return out;
+}
+
+/** Restores only known roadmap keys with string values; returns how many were written. */
+function writeRoadmap(raw: unknown): number {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return 0;
+  let n = 0;
+  for (const key of ROADMAP_KEYS) {
+    const v = (raw as Record<string, unknown>)[key];
+    if (typeof v !== "string") continue;
+    try {
+      localStorage.setItem(key, v);
+      n++;
+    } catch {
+      /* storage unavailable */
+    }
+  }
+  return n;
+}
+
 export default function Backup({
   className = "",
   state,
@@ -22,7 +61,9 @@ export default function Backup({
 
   const onExport = () => {
     const d = new Date();
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    // Companion state at the top level (older backups are exactly that), roadmap data alongside.
+    const bundle = { ...state, roadmap: readRoadmap() };
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -48,11 +89,15 @@ export default function Backup({
       if (!window.confirm("Replace your current companion data with this backup?")) return;
       const restored = mergeState(parsed);
       replace(restored);
+      const roadmapKeys = writeRoadmap((parsed as { roadmap?: unknown }).roadmap);
       const droppedBank = (parsed as { bank?: unknown }).bank != null && restored.bank === null;
       setMessage(
         droppedBank
           ? { tone: "error", text: `Restored from ${file.name}, without its bank import: its date is missing, invalid or in the future. Paste your bank again.` }
-          : { tone: "info", text: `Restored from ${file.name}.` }
+          : {
+              tone: "info",
+              text: `Restored from ${file.name}${roadmapKeys > 0 ? ", including your Max Cape Roadmap data" : ""}.`,
+            }
       );
     } catch (err) {
       setMessage({ tone: "error", text: err instanceof Error ? err.message : String(err) });
@@ -65,7 +110,8 @@ export default function Backup({
         Backup
       </CardTitle>
       <p className="mt-3 text-xs text-neutral-400 leading-relaxed">
-        Everything here lives in this browser only. Export a copy to move it to another device or keep it safe.
+        Everything lives in this browser only, on this page and the Max Cape Roadmap. One export saves both: use it
+        to move to another device or keep a copy safe.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button

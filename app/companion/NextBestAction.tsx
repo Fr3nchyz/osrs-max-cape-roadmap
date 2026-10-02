@@ -1,11 +1,14 @@
 "use client";
 
-import { ArrowRight, Compass, Feather, Swords } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Compass, Feather, ListOrdered, Moon, Swords } from "lucide-react";
 import { formatGp } from "@/lib/format";
 import type { FletchingCoverage } from "@/lib/companion/fletching";
 import type { NextAction } from "@/lib/companion/nextAction";
 import type { RankedMethod } from "@/lib/companion/sessions";
 import type { PvmMethod } from "@/lib/companion/methods";
+import type { MethodStats } from "@/lib/companion/types";
+import { MAX_ORDER, type NextMilestone } from "@/lib/maxOrder";
 import type { Remote } from "./useLive";
 import { Card, CardTitle, LABEL, Loading, Notice, RetryButton } from "./ui";
 
@@ -18,6 +21,10 @@ type Props = {
   unrated: PvmMethod[];
   noWilderness: boolean;
   fletching: FletchingCoverage | null;
+  /** First unmet step of the maxing order; null when done or HiScores missing. */
+  maxingStep: NextMilestone | null;
+  /** Low-attention earners with your log for each, if any. */
+  lowAttention: { method: PvmMethod; stats: MethodStats | null }[];
   /** True when the stock comes from a bank import rather than the 2026-10-02 baseline. */
   stockFromImport: boolean;
   hiscores: Remote<unknown>;
@@ -30,9 +37,12 @@ export default function NextBestAction({
   unrated,
   noWilderness,
   fletching,
+  maxingStep,
+  lowAttention,
   stockFromImport,
   hiscores,
 }: Props) {
+  const unratedNames = unrated.filter((m) => !m.lowAttention).map((m) => m.name);
   return (
     <Card className={className} aria-labelledby="nba-title">
       <CardTitle id="nba-title" icon={Compass} aside={STATE_LABEL[action.state]}>
@@ -46,7 +56,7 @@ export default function NextBestAction({
         <p className="mt-1 pl-6 text-xs text-neutral-300 leading-relaxed">{action.detail}</p>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <div className="min-w-0">
           <p className={`${LABEL} flex items-center gap-2`}>
             <Swords className="w-3.5 h-3.5" aria-hidden /> Best earners now
@@ -74,8 +84,89 @@ export default function NextBestAction({
           </ol>
           <p className="mt-2 text-[11px] text-neutral-500 leading-relaxed">
             Ranked by conservative net GP/hour: the low end of the learning range until a method has 10 logged hours.
-            {unrated.length > 0 && <> Log {unrated.map((m) => m.name).join(", ")} to rate them.</>}
+            {unratedNames.length > 0 && <> Log {unratedNames.join(", ")} to rate them.</>}
             {noWilderness && " Wilderness methods are hidden."}
+          </p>
+
+          {lowAttention.length > 0 && (
+            <>
+              <p className={`${LABEL} mt-5 flex items-center gap-2`}>
+                <Moon className="w-3.5 h-3.5" aria-hidden /> Low attention
+              </p>
+              <ul className="mt-2 space-y-1 text-xs">
+                {lowAttention.map(({ method, stats }) => (
+                  <li key={method.id} className="flex justify-between gap-3" title={method.note}>
+                    <span className="text-neutral-300 min-w-0">{method.name}</span>
+                    <span className="text-right shrink-0">
+                      {stats && stats.hours > 0 ? (
+                        <span className="font-bold text-neutral-200">
+                          {formatGp(stats.gpPerHour)}/hr{" "}
+                          <span className="font-normal text-neutral-500">yours, {Number(stats.hours.toFixed(1))}h</span>
+                        </span>
+                      ) : method.wikiModel ? (
+                        <span className="text-neutral-400">
+                          ~{formatGp(method.wikiModel.gpPerHour)}/hr <span className="text-neutral-600">wiki</span>
+                        </span>
+                      ) : (
+                        <span className="text-neutral-500">not logged</span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[11px] text-neutral-500 leading-relaxed">
+                For low-energy blocks. Wiki figures assume their guide&apos;s setup (frost dragons: max melee gear;
+                crystal keys: GE volume you rarely get), so log a few trips before trusting them.
+              </p>
+            </>
+          )}
+        </div>
+
+        <div className="min-w-0">
+          <p className={`${LABEL} flex items-center gap-2`}>
+            <ListOrdered className="w-3.5 h-3.5" aria-hidden /> Maxing next
+          </p>
+          {maxingStep ? (
+            <div className="mt-2 rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2.5">
+              <p className="text-sm font-bold text-neutral-200">
+                {maxingStep.milestone.skill} → {maxingStep.milestone.level}
+              </p>
+              <p className="text-[11px] text-neutral-500">
+                Step {maxingStep.index + 1} of {MAX_ORDER.length} · {Math.round(maxingStep.xpToGo / 1000).toLocaleString("en-US")}k
+                XP to go
+              </p>
+              <p className="mt-1 text-xs text-neutral-400">{maxingStep.milestone.how}</p>
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-neutral-500">
+              {hiscores.data ? "Your maxing order is complete." : "Waiting for HiScores…"}
+            </p>
+          )}
+          <ol className="mt-3 space-y-0.5 text-[11px]">
+            {MAX_ORDER.map((m, i) => {
+              const done = maxingStep ? i < maxingStep.index : hiscores.data !== null;
+              const current = maxingStep?.index === i;
+              return (
+                <li
+                  key={`${m.skill}-${m.level}`}
+                  className={`flex gap-2 ${current ? "text-yellow-500 font-bold" : done ? "text-neutral-600 line-through" : "text-neutral-400"}`}
+                >
+                  <span className="w-4 text-right tabular-nums">{i + 1}.</span>
+                  <span>
+                    {m.skill} {m.level}
+                    {done && <span className="sr-only"> (done)</span>}
+                    {current && <span className="sr-only"> (current)</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+          <p className="mt-2 text-[11px] text-neutral-500">
+            Same order as &ldquo;Do this next&rdquo; on the{" "}
+            <Link href="/" className="text-yellow-600 hover:text-yellow-500 hover:underline underline-offset-2">
+              Max Cape Roadmap
+            </Link>
+            .
           </p>
         </div>
 

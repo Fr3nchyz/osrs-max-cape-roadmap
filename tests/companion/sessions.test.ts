@@ -108,7 +108,7 @@ describe("rankMethods", () => {
     const { ranked, unrated } = rankMethods(all, []);
     expect(ranked.map((r) => r.method.id).slice(0, 3)).toEqual(["maggot-king", "vorkath", "doom"]);
     expect(ranked.every((r) => r.source === "planning")).toBe(true);
-    expect(unrated.map((m) => m.id)).toEqual(["slayer", "other"]);
+    expect(unrated.map((m) => m.id)).toEqual(["slayer", "frost-dragons", "adamant-dragons", "crystal-keys", "other"]);
   });
 
   it("uses your logged rate once qualified, even when it is lower", () => {
@@ -166,10 +166,12 @@ describe("nextAction", () => {
 
 describe("scenarios with extra rates", () => {
   it("appends logged and custom rates and skips non-positive ones", () => {
-    const r = scenarios(110 * M, 1.5, 4, [
-      { id: "logged", label: "Your rate", gpPerHour: 5.5 * M },
-      { id: "custom", label: "Custom", gpPerHour: 0 },
-    ]);
+    const r = scenarios(110 * M, 1.5, 4, {
+      extra: [
+        { id: "logged", label: "Your rate", gpPerHour: 5.5 * M },
+        { id: "custom", label: "Custom", gpPerHour: 0 },
+      ],
+    });
     expect(r.map((x) => x.id)).toEqual(["conservative", "base", "aggressive", "logged"]);
     expect(r[3].focusedHours).toBe(20);
   });

@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { Wallet } from "lucide-react";
 import { formatFullGp } from "@/lib/format";
-import { weeklyHours } from "@/lib/companion/goal";
+import { clampPvmShare, weeklyHours, weeklySplit } from "@/lib/companion/goal";
 import type { CompanionState } from "@/lib/companion/types";
 import type { CompanionUpdate } from "./useCompanionState";
 import { Card, CardTitle, LABEL, Notice, Toggle } from "./ui";
@@ -20,6 +20,7 @@ type Props = {
 
 export default function CapitalInputs({ className = "", state, update, bankActive }: Props) {
   const gpHint = (gp: number) => `${formatFullGp(gp)} gp`;
+  const split = weeklySplit(state);
 
   return (
     <Card className={className} aria-labelledby="capital-title">
@@ -89,7 +90,16 @@ export default function CapitalInputs({ className = "", state, update, bankActiv
         />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+        <NumberField
+          label="T-bow PvM share"
+          unit="% of play"
+          step={5}
+          max={90}
+          value={Math.round(clampPvmShare(state.pvmShare) * 100)}
+          onChange={(pct) => update({ pvmShare: clampPvmShare(pct / 100) })}
+          hint={`${Number(split.pvmHours.toFixed(1))}h PvM · ${Number(split.maxingHours.toFixed(1))}h maxing a week (10-90%)`}
+        />
         <NumberField
           label="Custom scenario rate"
           unit="M gp / h"
