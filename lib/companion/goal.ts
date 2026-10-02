@@ -4,6 +4,7 @@
  */
 
 import { GE_TAX_RATE } from "@/lib/market/tax";
+import { BASELINE_BANK } from "./baselineBank";
 import type {
   BankValuation,
   ChecklistId,
@@ -51,9 +52,9 @@ export const DEFAULT_STATE: CompanionState = {
   ownsTbow: false,
   dt2Complete: false,
   checklist: {},
-  bank: null,
+  bank: BASELINE_BANK,
   keepItemIds: DEFAULT_KEEP_ITEM_IDS,
-  useBankImport: false,
+  useBankImport: true,
   sessions: [],
   customGpPerHour: 0,
   noWilderness: true,
@@ -63,6 +64,7 @@ export const DEFAULT_STATE: CompanionState = {
   caTarget: "None",
   sellSelection: {},
   flipBudgetGp: 0,
+  bankCleared: false,
 };
 
 /**

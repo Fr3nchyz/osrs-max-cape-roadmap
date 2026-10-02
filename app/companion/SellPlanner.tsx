@@ -8,7 +8,8 @@ import type { BankValuation, CompanionState, PriceTable } from "@/lib/companion/
 import type { DailyResponse } from "../api/prices/daily/route";
 import type { CompanionUpdate } from "./useCompanionState";
 import type { Remote } from "./useLive";
-import { Card, CardTitle, LABEL, Notice } from "./ui";
+import { Card, CardTitle, LABEL, Notice, Sparkline, TrendLabel, shortDay } from "./ui";
+import type { TrendsResponse } from "../api/market/trends/route";
 
 const ROWS = 30;
 /** Flag a 24h move at least this big on anything you plan to sell. */
@@ -25,6 +26,11 @@ type Props = {
   weeklyPvmGp: number;
   weeksToMax: number | null;
   daily: Remote<DailyResponse>;
+  /** 7-day trends for the rows shown. */
+  trends: Remote<TrendsResponse>;
+  /** Bank date and whether it's the built-in snapshot. */
+  bankTakenAt: string | null;
+  bankIsSnapshot: boolean;
 };
 
 export default function SellPlanner({
@@ -37,6 +43,9 @@ export default function SellPlanner({
   weeklyPvmGp,
   weeksToMax,
   daily,
+  trends,
+  bankTakenAt,
+  bankIsSnapshot,
 }: Props) {
   const [showAll, setShowAll] = useState(false);
   const volume = useMemo(
@@ -101,6 +110,12 @@ export default function SellPlanner({
       <p className="mt-3 text-xs text-neutral-400 leading-relaxed">
         The bow and your reserve are paid in coins. Pick what you&apos;d sell on max day; kept items (your Fletching stock
         and anything else ticked Keep) stay out.
+        {bankTakenAt && (
+          <span className="block mt-1 text-yellow-500/90">
+            Quantities from your {bankIsSnapshot ? "built-in bank snapshot" : "bank import"} of {shortDay(bankTakenAt)}; they
+            may be out of date. Prices are live.
+          </span>
+        )}
       </p>
 
       <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -147,7 +162,7 @@ export default function SellPlanner({
         </div>
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-neutral-800">
+      <div className="relative mt-4 overflow-x-auto rounded-2xl border border-neutral-800">
         <table className="w-full text-xs">
           <caption className="sr-only">Sellable items and quantities to sell</caption>
           <thead>
@@ -158,6 +173,7 @@ export default function SellPlanner({
               <th className={`${TH} text-right`}>Net</th>
               <th className={`${TH} text-right`}>Days</th>
               <th className={`${TH} text-right`}>24h</th>
+              <th className={`${TH} text-right`}>7 days</th>
             </tr>
           </thead>
           <tbody>
@@ -202,6 +218,22 @@ export default function SellPlanner({
                       </span>
                     )}
                   </td>
+                  <td className="px-3 py-1.5 text-right">
+                    {trends.data?.trends[String(item.itemId)] ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Sparkline
+                          values={trends.data.trends[String(item.itemId)].sparkline}
+                          falling={trends.data.trends[String(item.itemId)].direction === "falling"}
+                        />
+                        <TrendLabel
+                          direction={trends.data.trends[String(item.itemId)].direction}
+                          change7d={trends.data.trends[String(item.itemId)].change7d}
+                        />
+                      </span>
+                    ) : (
+                      <span className="text-neutral-600">{trends.loading ? "…" : "--"}</span>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -211,7 +243,8 @@ export default function SellPlanner({
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-neutral-500">
         <span>
           Net is after the 2% tax and {state.slippagePct}% slippage. 24h compares the instant-sell price with its 24h
-          average; moves of {MOVE_PCT}% or more are highlighted.
+          average; moves of {MOVE_PCT}% or more are highlighted. 7 days shows the week&apos;s trend for the top 30 rows:
+          sell what&apos;s falling sooner, hold what&apos;s rising.
         </span>
         {sellable.length > ROWS && (
           <button type="button" onClick={() => setShowAll((v) => !v)} className="font-bold text-yellow-600 hover:text-yellow-500">

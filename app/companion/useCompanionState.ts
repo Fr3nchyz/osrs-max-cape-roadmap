@@ -3,6 +3,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { CHECKLIST, DEFAULT_STATE, clampPvmShare } from "@/lib/companion/goal";
 import { CA_TIERS, type CaTier } from "@/lib/today";
+import { BASELINE_BANK } from "@/lib/companion/baselineBank";
 import type { BankImport, BankItem, ChecklistId, CompanionState, Session } from "@/lib/companion/types";
 
 export const COMPANION_STORAGE_KEY = "osrs-companion-fr3nchy";
@@ -87,7 +88,11 @@ export function mergeState(raw: unknown): CompanionState {
     ownsTbow: flag("ownsTbow"),
     dt2Complete: flag("dt2Complete"),
     checklist,
-    bank: mergeBank(raw.bank),
+    // The built-in snapshot stands in until you paste your own bank (or clear it on purpose).
+    bank:
+      isRec(raw.bank) && raw.bank.baseline === true
+        ? BASELINE_BANK
+        : (mergeBank(raw.bank) ?? (raw.bankCleared === true ? null : BASELINE_BANK)),
     keepItemIds: Array.isArray(raw.keepItemIds)
       ? raw.keepItemIds.filter((n): n is number => Number.isInteger(n))
       : DEFAULT_STATE.keepItemIds,
@@ -106,6 +111,7 @@ export function mergeState(raw: unknown): CompanionState {
         )
       : {},
     flipBudgetGp: amount("flipBudgetGp"),
+    bankCleared: flag("bankCleared"),
   };
 }
 

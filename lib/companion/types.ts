@@ -72,6 +72,8 @@ export interface CompanionState {
   sellSelection: Record<string, number>;
   /** Flip book budget in gp; 0 = cash minus reserve. */
   flipBudgetGp: number;
+  /** You cleared the bank import on purpose: don't bring the built-in snapshot back. */
+  bankCleared: boolean;
 }
 
 /** One logged PvM session. Net GP = loot - supplies - upkeep - deaths. */
@@ -115,6 +117,8 @@ export interface BankImport {
   /** ISO timestamp of when the paste was imported. */
   importedAt: string;
   items: BankItem[];
+  /** True for the built-in 2026-10-02 snapshot rather than your own paste. */
+  baseline?: boolean;
 }
 
 export interface PriceQuote {
