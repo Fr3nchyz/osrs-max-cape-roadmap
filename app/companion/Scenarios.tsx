@@ -8,7 +8,7 @@ import { Card, CardTitle, LABEL, Notice, formatDay, formatHours } from "./ui";
 
 type Props = {
   results: ScenarioResult[] | null;
-  /** The knowledge base's scenario selection rule, from the session log. */
+  /** The knowledge base's scenario selection rule. */
   active: { id: ScenarioId; reason: string };
   /** Share of playtime for T-bow PvM (0-1); the rest is maxing. */
   pvmShare: number;

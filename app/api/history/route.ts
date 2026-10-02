@@ -17,10 +17,11 @@ const skillName = (k: string) => NAME_FIX[k] ?? k.charAt(0).toUpperCase() + k.sl
 
 type WomSnapshot = {
   createdAt: string;
-  data?: { skills?: Record<string, { experience?: number }> };
+  data?: { skills?: Record<string, { experience?: number }>; computed?: { ehb?: { value?: number } } };
 };
 
-export type HistoryPoint = { day: string; at: string; xp: Record<string, number> };
+/** ehb = Wise Old Man's efficient hours bossed, cumulative (null when missing). */
+export type HistoryPoint = { day: string; at: string; xp: Record<string, number>; ehb: number | null };
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -69,7 +70,8 @@ export async function GET(request: NextRequest) {
       if (k === "overall" || typeof v?.experience !== "number" || v.experience < 0) continue;
       xp[skillName(k)] = v.experience;
     }
-    byDay.set(day, { day, at: snap.createdAt, xp });
+    const ehb = snap.data?.computed?.ehb?.value;
+    byDay.set(day, { day, at: snap.createdAt, xp, ehb: typeof ehb === "number" && ehb >= 0 ? ehb : null });
   }
 
   const points = [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));

@@ -6,6 +6,8 @@
  * ambiguous, the resolution is noted next to the constant in goal.ts.
  */
 
+import type { CaTier } from "../today";
+
 export const TBOW_ITEM_ID = 20997;
 
 /** Coins and platinum tokens have no GE price; a bank import counts them as cash. */
@@ -63,6 +65,9 @@ export interface CompanionState {
    * which the Max Cape Roadmap plans with.
    */
   pvmShare: number;
+  /** Combat achievement tiers: current and goal (manual; no public source). */
+  caTier: CaTier;
+  caTarget: CaTier;
 }
 
 /** One logged PvM session. Net GP = loot - supplies - upkeep - deaths. */

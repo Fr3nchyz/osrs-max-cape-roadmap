@@ -31,7 +31,8 @@ import CapitalInputs from "./CapitalInputs";
 import BankImport from "./BankImport";
 import Backup from "./Backup";
 import NextBestAction from "./NextBestAction";
-import SessionLog from "./SessionLog";
+import Today from "../today/Today";
+import { readRoadmapSelections } from "../today/useWeek";
 
 const USERNAME = "fr3nchy";
 
@@ -96,7 +97,8 @@ export default function CompanionPage() {
     weekend: weekendDay,
     topMethod: ranked[0]?.method.name ?? null,
   });
-  const xpBySkill = xpFromHiscores(hiscores.data);
+  const xpBySkill = useMemo(() => xpFromHiscores(hiscores.data), [hiscores.data]);
+  const roadmapSelections = useMemo(() => (ready ? readRoadmapSelections() : {}), [ready]);
   const maxingStep = hiscores.data ? nextMilestone(xpBySkill) : null;
   const lowAttention = PVM_METHODS.filter((m) => m.lowAttention && !(state.noWilderness && m.wilderness)).map(
     (method) => ({ method, stats: stats.find((s) => s.methodId === method.id) ?? null })
@@ -142,6 +144,8 @@ export default function CompanionPage() {
           </div>
         ) : (
           <>
+            <Today xpBySkill={hiscores.data ? xpBySkill : null} selections={roadmapSelections} />
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               <FundingHero
                 className="lg:col-span-8"
@@ -198,8 +202,6 @@ export default function CompanionPage() {
                 hiscores={hiscores}
               />
             </div>
-
-            <SessionLog state={state} update={update} stats={stats} rolling={rolling} />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
               <div className="lg:col-span-5 space-y-4 min-w-0">

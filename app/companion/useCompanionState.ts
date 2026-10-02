@@ -2,6 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import { CHECKLIST, DEFAULT_STATE, clampPvmShare } from "@/lib/companion/goal";
+import { CA_TIERS, type CaTier } from "@/lib/today";
 import type { BankImport, BankItem, ChecklistId, CompanionState, Session } from "@/lib/companion/types";
 
 export const COMPANION_STORAGE_KEY = "osrs-companion-fr3nchy";
@@ -24,6 +25,8 @@ function mergeBank(raw: unknown): BankImport | null {
   );
   return { importedAt: raw.importedAt, items: items.map(({ itemId, name, quantity }) => ({ itemId, name, quantity })) };
 }
+
+const isCaTier = (v: unknown): v is CaTier => typeof v === "string" && (CA_TIERS as readonly string[]).includes(v);
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const gp = (v: unknown) => (isNum(v) && v >= 0 ? v : 0);
@@ -93,6 +96,8 @@ export function mergeState(raw: unknown): CompanionState {
     customGpPerHour: amount("customGpPerHour"),
     noWilderness: flag("noWilderness"),
     pvmShare: isNum(raw.pvmShare) ? clampPvmShare(raw.pvmShare) : DEFAULT_STATE.pvmShare,
+    caTier: isCaTier(raw.caTier) ? raw.caTier : DEFAULT_STATE.caTier,
+    caTarget: isCaTier(raw.caTarget) ? raw.caTarget : DEFAULT_STATE.caTarget,
   };
 }
 

@@ -56,7 +56,10 @@ export const DEFAULT_STATE: CompanionState = {
   sessions: [],
   customGpPerHour: 0,
   noWilderness: true,
-  pvmShare: 0.6,
+  // Max first: 75% of playtime to maxing, 25% to T-bow PvM and breaks.
+  pvmShare: 0.25,
+  caTier: "None",
+  caTarget: "None",
 };
 
 /**
