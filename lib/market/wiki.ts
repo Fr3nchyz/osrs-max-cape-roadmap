@@ -69,6 +69,7 @@ const REVALIDATE_SECONDS: Record<string, number> = {
   latest: 60,
   "5m": 60 * 5,
   "1h": 60 * 30,
+  "24h": 60 * 30,
   timeseries: 60 * 5,
 };
 
@@ -141,6 +142,15 @@ export async function fetchAveraged(
     step,
     timestamp ? { timestamp } : {},
   );
+  return body.data;
+}
+
+/** Raw shape of a /24h entry: averages and volumes over the last day. */
+export type WikiDailyEntry = WikiAveragedEntry;
+
+/** Volume-weighted averages and trade volumes over the last 24 hours, for every item. */
+export async function fetchDaily(): Promise<Record<string, WikiDailyEntry>> {
+  const body = await wikiFetch<{ data: Record<string, WikiDailyEntry> }>("24h");
   return body.data;
 }
 

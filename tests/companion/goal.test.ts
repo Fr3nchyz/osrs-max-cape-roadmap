@@ -203,7 +203,7 @@ describe("fundingStage", () => {
 describe("weeklyHours", () => {
   it("is weekday x 5 + weekend x 2", () => {
     expect(weeklyHours(1.5, 4)).toBe(15.5);
-    expect(weeklyHours(DEFAULT_STATE.weekdayHours, DEFAULT_STATE.weekendHours)).toBe(15.5);
+    expect(weeklyHours(DEFAULT_STATE.weekdayHours, DEFAULT_STATE.weekendHours)).toBe(16.5);
     expect(weeklyHours(2, 0)).toBe(10);
     expect(weeklyHours(0, 3)).toBe(6);
     expect(weeklyHours(0, 0)).toBe(0);

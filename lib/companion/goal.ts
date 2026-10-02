@@ -46,7 +46,8 @@ export const DEFAULT_STATE: CompanionState = {
   slippagePct: 1,
   reserveGp: 25_000_000,
   weekdayHours: 1.5,
-  weekendHours: 4,
+  // 4.5h weekend days: 16.5h a week, fr3nchy's own estimate (the knowledge base said 15.5h).
+  weekendHours: 4.5,
   ownsTbow: false,
   dt2Complete: false,
   checklist: {},
