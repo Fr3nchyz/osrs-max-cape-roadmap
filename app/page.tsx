@@ -24,6 +24,7 @@ import {
 import Plan from "./Plan";
 import SessionPlanner from "./SessionPlanner";
 import Today from "./today/Today";
+import Recap from "./today/Recap";
 import SkillTable from "./SkillTable";
 import { useGoals } from "./useGoals";
 import { useProgress } from "./useProgress";
@@ -277,6 +278,11 @@ export default function App() {
     persist({ orderType: type });
   };
 
+  const liveXp = useMemo(
+    () => Object.fromEntries(data.filter((s) => s.name !== "Overall").map((s) => [s.name, s.xp])),
+    [data]
+  );
+
   // Fletching XP the committed stock pays for is done in downtime, not dedicated hours.
   const fletchingXpNow = data.find((s) => s.name === "Fletching")?.xp ?? null;
   const stockItems = plan.bank?.items ?? BASELINE_FLETCHING_STOCK;
@@ -457,10 +463,10 @@ export default function App() {
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
-          <Today
-            xpBySkill={Object.fromEntries(data.filter((s) => s.name !== "Overall").map((s) => [s.name, s.xp]))}
-            selections={selections}
-          />
+          <>
+            <Today xpBySkill={liveXp} selections={selections} />
+            <Recap xpBySkill={liveXp} selections={selections} />
+          </>
         )}
 
         {tab === "dashboard" && dashboard && (

@@ -3,7 +3,46 @@
 import { useEffect, useMemo, useState } from "react";
 import { periodStats, startOfWeek, type XpPoint } from "../progress";
 
-type Point = { day: string; at: string; xp: Record<string, number>; ehb: number | null };
+export type Point = {
+  day: string;
+  at: string;
+  xp: Record<string, number>;
+  ehb: number | null;
+  kc: Record<string, number>;
+};
+
+// One fetch per page load, shared by the Today card and the weekly recap.
+let historyRequest: Promise<Point[]> | null = null;
+function loadHistory(): Promise<Point[]> {
+  if (!historyRequest) {
+    const tz = -new Date().getTimezoneOffset();
+    historyRequest = fetch(`/api/history?days=40&tz=${tz}`)
+      .then((r) => r.json())
+      .then((j) =>
+        j?.status === "ok" && Array.isArray(j.points)
+          ? (j.points as Point[]).map((p) => ({ ...p, ehb: p.ehb ?? null, kc: p.kc ?? {} }))
+          : []
+      )
+      .catch(() => {
+        historyRequest = null; // retry on the next mount
+        return [];
+      });
+  }
+  return historyRequest;
+}
+
+/** The last 40 days of Wise Old Man daily snapshots; null while loading. */
+export function useHistory(): Point[] | null {
+  const [points, setPoints] = useState<Point[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadHistory().then((p) => alive && setPoints(p));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return points;
+}
 
 export interface WeekSoFar {
   /** Maxing hours done this week (XP gained at your roadmap methods' rates); null until loaded. */
@@ -20,20 +59,8 @@ export interface WeekSoFar {
  * snapshots (the same feed the roadmap's progress panel uses).
  */
 export function useWeek(selections: Record<string, number>): WeekSoFar {
-  const [points, setPoints] = useState<Point[] | null>(null);
+  const points = useHistory();
   const [now] = useState(() => Date.now());
-
-  useEffect(() => {
-    let alive = true;
-    const tz = -new Date().getTimezoneOffset();
-    fetch(`/api/history?days=14&tz=${tz}`)
-      .then((r) => r.json())
-      .then((j) => alive && setPoints(j?.status === "ok" && Array.isArray(j.points) ? j.points : []))
-      .catch(() => alive && setPoints([]));
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   return useMemo(() => {
     const weekStart = startOfWeek(now);

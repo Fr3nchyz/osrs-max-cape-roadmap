@@ -17,11 +17,24 @@ const skillName = (k: string) => NAME_FIX[k] ?? k.charAt(0).toUpperCase() + k.sl
 
 type WomSnapshot = {
   createdAt: string;
-  data?: { skills?: Record<string, { experience?: number }>; computed?: { ehb?: { value?: number } } };
+  data?: {
+    skills?: Record<string, { experience?: number }>;
+    bosses?: Record<string, { kills?: number }>;
+    computed?: { ehb?: { value?: number } };
+  };
 };
 
-/** ehb = Wise Old Man's efficient hours bossed, cumulative (null when missing). */
-export type HistoryPoint = { day: string; at: string; xp: Record<string, number>; ehb: number | null };
+/**
+ * ehb = Wise Old Man's efficient hours bossed, cumulative (null when missing);
+ * kc = lifetime kills per boss with at least one kill, keyed by WOM metric.
+ */
+export type HistoryPoint = {
+  day: string;
+  at: string;
+  xp: Record<string, number>;
+  ehb: number | null;
+  kc: Record<string, number>;
+};
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -71,7 +84,11 @@ export async function GET(request: NextRequest) {
       xp[skillName(k)] = v.experience;
     }
     const ehb = snap.data?.computed?.ehb?.value;
-    byDay.set(day, { day, at: snap.createdAt, xp, ehb: typeof ehb === "number" && ehb >= 0 ? ehb : null });
+    const kc: Record<string, number> = {};
+    for (const [k, v] of Object.entries(snap.data?.bosses ?? {})) {
+      if (typeof v?.kills === "number" && v.kills > 0) kc[k] = v.kills;
+    }
+    byDay.set(day, { day, at: snap.createdAt, xp, ehb: typeof ehb === "number" && ehb >= 0 ? ehb : null, kc });
   }
 
   const points = [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));

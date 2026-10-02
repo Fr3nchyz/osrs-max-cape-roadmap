@@ -32,6 +32,8 @@ import BankImport from "./BankImport";
 import Backup from "./Backup";
 import NextBestAction from "./NextBestAction";
 import Today from "../today/Today";
+import Recap from "../today/Recap";
+import type { CrystalKeysResponse } from "../api/market/crystal-keys/route";
 import { readRoadmapSelections } from "../today/useWeek";
 
 const USERNAME = "fr3nchy";
@@ -42,6 +44,7 @@ export default function CompanionPage() {
 
   const tbow = useJson<TbowPriceResponse>("/api/prices/tbow");
   const hiscores = useJson<unknown>("/api/hiscores");
+  const crystalKeys = useJson<CrystalKeysResponse>("/api/market/crystal-keys");
   const latest = useJson<LatestPricesResponse>("/api/prices/latest", state.bank !== null);
 
   // Bank valuation at live prices (only when an import exists and prices loaded).
@@ -145,6 +148,7 @@ export default function CompanionPage() {
         ) : (
           <>
             <Today xpBySkill={hiscores.data ? xpBySkill : null} selections={roadmapSelections} />
+            <Recap xpBySkill={hiscores.data ? xpBySkill : null} selections={roadmapSelections} />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               <FundingHero
@@ -171,6 +175,7 @@ export default function CompanionPage() {
               maxingStep={maxingStep}
               lowAttention={lowAttention}
               stockFromImport={bank !== null}
+              crystalKeys={crystalKeys}
               hiscores={hiscores}
             />
 

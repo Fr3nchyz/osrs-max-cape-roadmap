@@ -9,11 +9,11 @@ import type { Session } from "@/lib/companion/types";
 const M = 1_000_000;
 
 describe("weeklySplit", () => {
-  it("splits the 15.5h week 25/75 by default (max first)", () => {
+  it("splits the 16.5h week 25/75 by default (max first)", () => {
     const s = weeklySplit(DEFAULT_STATE);
-    expect(s.totalHours).toBe(15.5);
-    expect(s.pvmHours).toBeCloseTo(3.875, 9);
-    expect(s.maxingHours).toBeCloseTo(11.625, 9);
+    expect(s.totalHours).toBe(16.5);
+    expect(s.pvmHours).toBeCloseTo(4.125, 9);
+    expect(s.maxingHours).toBeCloseTo(12.375, 9);
   });
   it("clamps the share to 10-90% so neither goal gets zero time", () => {
     expect(weeklySplit({ ...DEFAULT_STATE, pvmShare: 1 }).pvmShare).toBe(0.9);

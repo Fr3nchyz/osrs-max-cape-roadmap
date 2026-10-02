@@ -10,6 +10,7 @@ import type { PvmMethod } from "@/lib/companion/methods";
 import type { MethodStats } from "@/lib/companion/types";
 import { MAX_ORDER, type NextMilestone } from "@/lib/maxOrder";
 import type { Remote } from "./useLive";
+import type { CrystalKeysResponse } from "@/app/api/market/crystal-keys/route";
 import { Card, CardTitle, LABEL, Loading, Notice, RetryButton } from "./ui";
 
 const TOP_N = 3;
@@ -28,6 +29,8 @@ type Props = {
   /** True when the stock comes from a bank import rather than the 2026-10-02 baseline. */
   stockFromImport: boolean;
   hiscores: Remote<unknown>;
+  /** Live crystal key margins and volumes. */
+  crystalKeys: Remote<CrystalKeysResponse>;
 };
 
 export default function NextBestAction({
@@ -41,6 +44,7 @@ export default function NextBestAction({
   lowAttention,
   stockFromImport,
   hiscores,
+  crystalKeys,
 }: Props) {
   const unratedNames = unrated.filter((m) => !m.lowAttention).map((m) => m.name);
   return (
@@ -114,6 +118,7 @@ export default function NextBestAction({
                 For low-energy blocks. Wiki figures assume their guide&apos;s setup (frost dragons: max melee gear;
                 crystal keys: GE volume you rarely get), so expect less.
               </p>
+              <CrystalKeysToday remote={crystalKeys} />
             </>
           )}
         </div>
@@ -256,6 +261,46 @@ function FletchingNudge({
         Arrows and bolts fletch while you walk, bank or wait between kills, so they cost no PvM time. The inputs are
         already bought: optimise for attention, not sunk cost.{" "}
         {stockFromImport ? "Stock from your bank import." : "Stock from your 2026-10-02 bank; import a bank to update it."}
+      </p>
+    </div>
+  );
+}
+
+function CrystalKeysToday({ remote }: { remote: Remote<CrystalKeysResponse> }) {
+  const d = remote.data;
+  if (!d) {
+    return remote.error ? (
+      <p className="mt-3 text-[11px] text-neutral-500">Crystal key prices unavailable ({remote.error}).</p>
+    ) : null;
+  }
+  const gp = (n: number | null) => (n === null ? "--" : `${n < 0 ? "−" : "+"}${Math.abs(n).toLocaleString("en-US")} gp`);
+  return (
+    <div className="mt-3 rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2.5 text-xs">
+      <p className={LABEL}>Crystal keys today</p>
+      <ul className="mt-1.5 space-y-1">
+        <li className="flex justify-between gap-3">
+          <span className="text-neutral-400">Per key, patient offers</span>
+          <span className="font-bold text-neutral-200 tabular-nums">{gp(d.patientMarginGp)}</span>
+        </li>
+        <li className="flex justify-between gap-3">
+          <span className="text-neutral-400">Per key, instant buy and sell</span>
+          <span className="font-bold text-neutral-200 tabular-nums">{gp(d.instantMarginGp)}</span>
+        </li>
+        <li className="flex justify-between gap-3">
+          <span className="text-neutral-400">Realistic keys a day</span>
+          <span className="font-bold text-neutral-200 tabular-nums">{d.keysPerDay.toLocaleString("en-US")}</span>
+        </li>
+        <li className="flex justify-between gap-3">
+          <span className="text-neutral-400">Profit a day, patient</span>
+          <span className="font-bold text-white tabular-nums">
+            {d.profitPerDayGp === null ? "no margin today" : formatGp(d.profitPerDayGp)}
+          </span>
+        </li>
+      </ul>
+      <p className="mt-1.5 text-[11px] text-neutral-500">
+        10% of the thinnest market ({d.bottleneck === "key" ? "keys" : `${d.bottleneck} halves`},{" "}
+        {d.prices[d.bottleneck].dailyVolume.toLocaleString("en-US")} traded in 24h)
+        {d.buyLimit !== null ? `, buy limit ${d.buyLimit.toLocaleString("en-US")} per 4h` : ""}. All after the 2% tax.
       </p>
     </div>
   );
