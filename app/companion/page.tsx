@@ -28,6 +28,8 @@ import { useCompanionState } from "./useCompanionState";
 import { useJson, useNow } from "./useLive";
 import { Notice, minutesSince } from "./ui";
 import AppHeader from "../AppHeader";
+import CompanionTabs, { COMPANION_TABS } from "./CompanionTabs";
+import { useHashTab } from "./useHashTab";
 import FundingHero, { type BankStatus } from "./FundingHero";
 import StageLadder from "./StageLadder";
 import Scenarios from "./Scenarios";
@@ -54,6 +56,7 @@ const USERNAME = "fr3nchy";
 
 export default function CompanionPage() {
   const { state, ready, unsaved, update, replace } = useCompanionState();
+  const [tab, setTab] = useHashTab(COMPANION_TABS, "plan");
   const now = useNow();
 
   const tbow = useJson<TbowPriceResponse>("/api/prices/tbow");
@@ -133,22 +136,22 @@ export default function CompanionPage() {
     return computeMaxPlan(skillsFromXp(xpBySkill), roadmapSelections, 0, downtime).totalHours / split.maxingHours;
   }, [hiscores.data, split.maxingHours, fXp, bank, xpBySkill, roadmapSelections]);
   const weeklyPvmGp = split.pvmHours * planEarnRate(state).gpPerHour;
-  const daily = useJson<DailyResponse>("/api/prices/daily", bank !== null);
+  const daily = useJson<DailyResponse>("/api/prices/daily", bank !== null && tab === "money");
 
   // Flip book: your budget, or cash minus the reserve.
   const cashNow = funding?.cashGp ?? state.cashGp;
   const freeCashGp = Math.max(0, cashNow - state.reserveGp);
   const flipBudgetGp = state.flipBudgetGp > 0 ? state.flipBudgetGp : freeCashGp;
-  const flips = useJson<FlipBookResponse>(`/api/market/flips?budget=${Math.round(flipBudgetGp)}`, ready);
+  const flips = useJson<FlipBookResponse>(`/api/market/flips?budget=${Math.round(flipBudgetGp)}`, ready && tab === "money");
   const flipIds = (flips.data?.picks ?? []).map((p) => p.itemId).join(",");
-  const flipTrends = useJson<TrendsResponse>(`/api/market/trends?ids=${flipIds}`, flipIds !== "");
+  const flipTrends = useJson<TrendsResponse>(`/api/market/trends?ids=${flipIds}`, flipIds !== "" && tab === "money");
   // Trends for the sell planner's top rows (biggest sellable stacks).
   const sellIds = (valuation?.items ?? [])
     .filter((i) => !i.kept && i.unitPrice !== null && i.netTotal > 0)
     .slice(0, 30)
     .map((i) => i.itemId)
     .join(",");
-  const sellTrends = useJson<TrendsResponse>(`/api/market/trends?ids=${sellIds}`, sellIds !== "");
+  const sellTrends = useJson<TrendsResponse>(`/api/market/trends?ids=${sellIds}`, sellIds !== "" && tab === "money");
 
   const checklistDetails: Partial<Record<ChecklistId, string>> = {
     priceFresh:
@@ -168,15 +171,13 @@ export default function CompanionPage() {
     tbow.reload();
     hiscores.reload();
     crystalKeys.reload();
-    flips.reload();
-    if (bank) {
-      latest.reload();
-      daily.reload();
-    }
+    if (tab === "money") flips.reload();
+    if (bank) latest.reload();
+    if (bank && tab === "money") daily.reload();
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
+    <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 pt-9 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
       <div className="max-w-7xl mx-auto space-y-6">
         <AppHeader
           icon={Crosshair}
@@ -202,8 +203,11 @@ export default function CompanionPage() {
         ) : (
           <>
             <Today xpBySkill={hiscores.data ? xpBySkill : null} selections={roadmapSelections} />
-            <Recap xpBySkill={hiscores.data ? xpBySkill : null} selections={roadmapSelections} />
 
+            <CompanionTabs tab={tab} onChange={setTab} />
+
+            {tab === "plan" && (
+              <>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               <FundingHero
                 className="lg:col-span-8"
@@ -220,7 +224,6 @@ export default function CompanionPage() {
               />
               <StageLadder className="lg:col-span-4" stage={stage} />
             </div>
-
             <NextBestAction
               action={action}
               ranked={ranked}
@@ -233,7 +236,6 @@ export default function CompanionPage() {
               crystalKeys={crystalKeys}
               hiscores={hiscores}
             />
-
             <Scenarios
               results={scenarioResults}
               active={active}
@@ -244,7 +246,11 @@ export default function CompanionPage() {
               ownsTbow={state.ownsTbow}
               now={now}
             />
+            <Recap xpBySkill={hiscores.data ? xpBySkill : null} selections={roadmapSelections} />
+              </>
+            )}
 
+            {tab === "check" && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
               <Checklist
                 className="lg:col-span-7"
@@ -262,22 +268,10 @@ export default function CompanionPage() {
                 hiscores={hiscores}
               />
             </div>
+            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-              <div className="lg:col-span-5 space-y-4 min-w-0">
-                <CapitalInputs state={state} update={update} bankActive={bankStatus === "on"} />
-                <Backup state={state} replace={replace} />
-              </div>
-              <BankImport
-                className="lg:col-span-7"
-                state={state}
-                update={update}
-                latest={latest}
-                valuation={valuation}
-                now={now}
-              />
-            </div>
-
+            {tab === "money" && (
+              <>
             <SellPlanner
               state={state}
               update={update}
@@ -300,6 +294,25 @@ export default function CompanionPage() {
               trends={flipTrends}
               now={now}
             />
+              </>
+            )}
+
+            {tab === "bank" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+              <div className="lg:col-span-5 space-y-4 min-w-0">
+                <CapitalInputs state={state} update={update} bankActive={bankStatus === "on"} />
+                <Backup state={state} replace={replace} />
+              </div>
+              <BankImport
+                className="lg:col-span-7"
+                state={state}
+                update={update}
+                latest={latest}
+                valuation={valuation}
+                now={now}
+              />
+            </div>
+            )}
           </>
         )}
 

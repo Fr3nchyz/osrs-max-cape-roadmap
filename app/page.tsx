@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import {
   Trophy,
-  Clock,
   Zap,
   Target,
   RefreshCw,
@@ -14,17 +13,14 @@ import {
   EyeOff,
   Coins,
   ListOrdered,
-  Calendar,
   Hourglass,
   LayoutDashboard,
-  Flag,
   ListChecks,
   Play,
 } from "lucide-react";
 import Plan from "./Plan";
 import SessionPlanner from "./SessionPlanner";
 import Today from "./today/Today";
-import Recap from "./today/Recap";
 import SkillTable from "./SkillTable";
 import { useGoals } from "./useGoals";
 import { useProgress } from "./useProgress";
@@ -44,6 +40,7 @@ import {
   totalLevel,
   MAX_TOTAL_LEVEL,
   DEFAULT_EARN_RATE,
+  ICON_MAP,
   type Skill,
 } from "./skills";
 
@@ -377,7 +374,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
+    <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 pt-9 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Nav Header */}
         <AppHeader
@@ -400,7 +397,7 @@ export default function App() {
         />
 
         {/* Tab nav */}
-        <div className="sticky top-0 z-20 -mx-1 px-1 py-2 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
+        <div className="sticky top-0 z-20 -mx-1 -mt-6 px-1 pt-8 pb-2 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
           <div className="inline-flex gap-1 bg-neutral-900 border border-neutral-800 rounded-2xl p-1">
             <button
               onClick={() => setTab("dashboard")}
@@ -443,7 +440,7 @@ export default function App() {
                 <span className="flex items-center gap-2">
                   <Play className="w-4 h-4 text-yellow-600" aria-hidden /> More skilling ideas for this session
                 </span>
-                <span className="text-[11px] font-bold text-neutral-500 normal-case tracking-normal group-open:hidden">
+                <span className="text-[11px] font-bold text-neutral-500 normal-case tracking-normal group-open:hidden max-sm:hidden">
                   Filter by platform, intensity and time
                 </span>
               </summary>
@@ -451,7 +448,6 @@ export default function App() {
                 <SessionPlanner skills={data} />
               </div>
             </details>
-            <Recap xpBySkill={liveXp} selections={selections} />
           </>
         )}
 
@@ -533,22 +529,61 @@ export default function App() {
                     const percent = (s.hours / dashboard.totalHours) * 100;
                     if (percent < 0.1) return null;
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={s.name}
                         style={{ width: `${percent}%` }}
+                        aria-label={`${s.name}: ${Math.round(s.hours)}h, ${Math.round(percent)}% of the time left`}
+                        aria-pressed={hoveredSkill === s.name}
                         onMouseEnter={() => setHoveredSkill(s.name)}
                         onMouseLeave={() => setHoveredSkill(null)}
-                        className={`${SKILL_COLORS[s.name] || "bg-zinc-600"} h-full transition-all hover:brightness-125 border-r border-neutral-950/20 last:border-0 cursor-help`}
+                        onFocus={() => setHoveredSkill(s.name)}
+                        onBlur={() => setHoveredSkill(null)}
+                        onClick={() => setHoveredSkill(s.name)}
+                        className={`${SKILL_COLORS[s.name] || "bg-zinc-600"} h-full transition-all hover:brightness-125 focus-visible:brightness-125 focus:outline-none border-r border-neutral-950/20 last:border-0 cursor-pointer ${
+                          hoveredSkill && hoveredSkill !== s.name ? "opacity-50" : ""
+                        }`}
                       />
                     );
                   })}
                 </div>
+                {(() => {
+                  const line = dashboard.breakdown.find((l) => l.name === hoveredSkill);
+                  if (!line) {
+                    return (
+                      <p className="mt-2 h-8 flex items-center text-[10px] text-neutral-600">
+                        Hover or tap a segment for details
+                      </p>
+                    );
+                  }
+                  const pct = Math.round((line.hours / dashboard.totalHours) * 100);
+                  const xp = line.remainingXp - (line.downtimeXp ?? 0);
+                  return (
+                    <div className="mt-2 h-8 flex items-center gap-2 min-w-0" aria-live="polite">
+                      <span className="text-lg leading-none shrink-0" aria-hidden>
+                        {ICON_MAP[line.name] || "❓"}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-black text-white uppercase tracking-tight leading-none truncate">
+                          {line.name} <span className="text-yellow-500 font-mono">{Math.round(line.hours)}h</span>{" "}
+                          <span className="text-neutral-500 font-mono normal-case">· {pct}% of time left</span>
+                        </p>
+                        <p className="text-[10px] text-neutral-500 mt-1 truncate">
+                          {line.method.name} · {(xp / 1_000_000).toFixed(xp >= 10_000_000 ? 0 : 1)}M XP to 99
+                          {line.downtimeXp ? " (rest done in downtime)" : ""}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3">
                   {dashboard.breakdown.map((s) => {
                     const percent = (s.hours / dashboard.totalHours) * 100;
                     return (
                       <div
                         key={s.name}
+                        onMouseEnter={() => setHoveredSkill(s.name)}
+                        onMouseLeave={() => setHoveredSkill(null)}
                         className={`flex items-center justify-between px-1.5 py-1 rounded-lg transition-colors ${
                           hoveredSkill === s.name ? "bg-neutral-800" : ""
                         }`}
@@ -661,15 +696,17 @@ export default function App() {
         {/* Section Controls */}
         {tab === "dashboard" && (
         <>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-1">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-1">
           <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-3">
             <Target className="w-5 h-5 text-yellow-600" /> Active Skill Goals
           </h3>
 
-          <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
+          <div className="col-span-2 flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800" role="group" aria-label="Order">
             <button
+              aria-pressed={orderType === "efficient"}
               onClick={() => handleOrderChange("efficient")}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
                 orderType === "efficient"
                   ? "bg-neutral-800 text-yellow-500 shadow-inner"
                   : "text-neutral-500 hover:text-neutral-300"
@@ -678,8 +715,9 @@ export default function App() {
               <Zap className="w-3 h-3" /> Efficient Ordering
             </button>
             <button
+              aria-pressed={orderType === "xp"}
               onClick={() => handleOrderChange("xp")}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
                 orderType === "xp"
                   ? "bg-neutral-800 text-yellow-500 shadow-inner"
                   : "text-neutral-500 hover:text-neutral-300"
@@ -689,15 +727,16 @@ export default function App() {
             </button>
           </div>
 
-          <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800">
+          <div className="col-span-2 flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800" role="group" aria-label="Period">
             {(["week", "month"] as const).map((p) => (
               <button
                 key={p}
+                aria-pressed={period === p}
                 onClick={() => {
                   setPeriod(p);
                   persist({ period: p });
                 }}
-                className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
+                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
                   period === p ? "bg-neutral-800 text-yellow-500 shadow-inner" : "text-neutral-500 hover:text-neutral-300"
                 }`}
               >
@@ -707,12 +746,13 @@ export default function App() {
           </div>
 
           <button
+            aria-pressed={mobileOnly}
             onClick={() => {
               const v = !mobileOnly;
               setMobileOnly(v);
               persist({ mobileOnly: v });
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
               mobileOnly
                 ? "bg-green-600/15 text-green-500 border-green-700/40"
                 : "bg-neutral-900 text-neutral-500 border-neutral-800 hover:text-neutral-300"
@@ -722,8 +762,9 @@ export default function App() {
           </button>
 
           <button
+            aria-pressed={editLevels}
             onClick={() => setEditLevels((v) => !v)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
               editLevels || Object.keys(levelOverrides).length > 0
                 ? "bg-yellow-600/15 text-yellow-500 border-yellow-700/40"
                 : "bg-neutral-900 text-neutral-500 border-neutral-800 hover:text-neutral-300"
@@ -734,6 +775,7 @@ export default function App() {
               <span className="font-mono">· {Object.keys(levelOverrides).length}</span>
             )}
           </button>
+          </div>
         </div>
 
         {editLevels && (

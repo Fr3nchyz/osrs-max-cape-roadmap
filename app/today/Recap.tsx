@@ -30,7 +30,7 @@ export default function Recap({ className = "", xpBySkill, selections }: Props) 
   const { state } = useCompanionState();
   const history = useHistory();
   const [now] = useState(() => Date.now());
-  const [which, setWhich] = useState<"last" | "this">("last");
+  const [which, setWhich] = useState<"last" | "this">("this");
   const split = weeklySplit(state);
 
   const thisWeek = startOfWeek(now);
@@ -89,7 +89,7 @@ export default function Recap({ className = "", xpBySkill, selections }: Props) 
       )}
 
       <div className="mt-6 flex items-center gap-2" role="group" aria-label="Week">
-        {(["last", "this"] as const).map((w) => (
+        {(["this", "last"] as const).map((w) => (
           <button
             key={w}
             type="button"

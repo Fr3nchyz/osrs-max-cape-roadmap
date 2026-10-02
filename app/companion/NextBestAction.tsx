@@ -49,7 +49,7 @@ export default function NextBestAction({
   const unratedNames = unrated.filter((m) => !m.lowAttention).map((m) => m.name);
   return (
     <Card className={className} aria-labelledby="nba-title">
-      <CardTitle id="nba-title" icon={Compass} aside={`Stage: ${STATE_LABEL[action.state]}`}>
+      <CardTitle id="nba-title" icon={Compass} aside={`Focus: ${STATE_LABEL[action.state]}`}>
         Options
       </CardTitle>
       <p className="mt-2 text-xs text-neutral-400">
