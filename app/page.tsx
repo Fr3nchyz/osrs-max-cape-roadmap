@@ -29,7 +29,7 @@ import SkillTable from "./SkillTable";
 import { useGoals } from "./useGoals";
 import { useProgress } from "./useProgress";
 import ProgressPanel from "./ProgressPanel";
-import SectionNav from "./SectionNav";
+import AppHeader from "./AppHeader";
 import { useCompanionState } from "./companion/useCompanionState";
 import { weeklySplit } from "@/lib/companion/goal";
 import { planEarnRate } from "@/lib/companion/sessions";
@@ -138,7 +138,7 @@ export default function App() {
   const [mobileOnly, setMobileOnly] = useState(false);
   const [period, setPeriod] = useState<"week" | "month">("week");
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
-  const [tab, setTab] = useState<"dashboard" | "plan" | "now">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "plan">("dashboard");
   const goalStore = useGoals();
 
   // Live HiScores with any manual level overrides applied (HiScores lag freshly-trained skills).
@@ -380,42 +380,24 @@ export default function App() {
     <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Nav Header */}
-        <header className="flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-800 rounded-2xl flex items-center justify-center shadow-2xl shadow-yellow-900/40 transform -rotate-3 hover:rotate-0 transition-transform cursor-pointer">
-              <Trophy className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic leading-none">
-                Max Cape Roadmap
-              </h1>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">
-                  Active Session: {USERNAME}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <SectionNav />
-
-          <div className="flex items-center gap-3 bg-neutral-900/50 p-1.5 rounded-2xl border border-neutral-800/50 backdrop-blur-xl">
+        <AppHeader
+          icon={Trophy}
+          title="Max Cape Roadmap"
+          subtitle={`Active session: ${USERNAME}`}
+          onRefresh={fetchStats}
+          refreshing={refreshing}
+          actions={
             <button
+              type="button"
               onClick={() => setShowMaxed(!showMaxed)}
+              aria-label={showMaxed ? "Hide maxed skills" : "Show maxed skills"}
+              title={showMaxed ? "Hide maxed skills" : "Show maxed skills"}
               className="p-2.5 hover:bg-neutral-800 rounded-xl transition-colors text-neutral-400 hover:text-white border border-transparent hover:border-neutral-700"
             >
-              {showMaxed ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showMaxed ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
             </button>
-            <button
-              onClick={fetchStats}
-              disabled={refreshing}
-              className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase transition-all shadow-lg active:scale-95 disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} /> Sync Live
-            </button>
-          </div>
-        </header>
+          }
+        />
 
         {/* Tab nav */}
         <div className="sticky top-0 z-20 -mx-1 px-1 py-2 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
@@ -426,7 +408,7 @@ export default function App() {
                 tab === "dashboard" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" /> Roadmap
+              <LayoutDashboard className="w-4 h-4" aria-hidden /> Overview
             </button>
             <button
               onClick={() => setTab("plan")}
@@ -434,15 +416,7 @@ export default function App() {
                 tab === "plan" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
               }`}
             >
-              <ListChecks className="w-4 h-4" /> Plan
-            </button>
-            <button
-              onClick={() => setTab("now")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
-                tab === "now" ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
-              }`}
-            >
-              <Play className="w-4 h-4" /> Now
+              <ListChecks className="w-4 h-4" aria-hidden /> Goals
             </button>
           </div>
         </div>
@@ -459,12 +433,24 @@ export default function App() {
             move={goalStore.move}
           />
         )}
-        {tab === "now" && <SessionPlanner skills={data} />}
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
           <>
             <Today xpBySkill={liveXp} selections={selections} />
+            <details className="group bg-neutral-900/50 border border-neutral-800 rounded-3xl px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="cursor-pointer list-none flex items-center justify-between gap-3 text-sm font-black text-white uppercase tracking-tighter">
+                <span className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-yellow-600" aria-hidden /> More skilling ideas for this session
+                </span>
+                <span className="text-[11px] font-bold text-neutral-500 normal-case tracking-normal group-open:hidden">
+                  Filter by platform, intensity and time
+                </span>
+              </summary>
+              <div className="mt-4">
+                <SessionPlanner skills={data} />
+              </div>
+            </details>
             <Recap xpBySkill={liveXp} selections={selections} />
           </>
         )}

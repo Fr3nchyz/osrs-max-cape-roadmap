@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { RefreshCw } from "lucide-react";
+import { Crosshair, RefreshCw } from "lucide-react";
 import { formatAge, formatGp } from "@/lib/format";
 import {
   weeklySplit,
@@ -27,7 +27,7 @@ import type { ChecklistId, LatestPricesResponse, ScenarioId, TbowPriceResponse }
 import { useCompanionState } from "./useCompanionState";
 import { useJson, useNow } from "./useLive";
 import { Notice, minutesSince } from "./ui";
-import CompanionHeader from "./CompanionHeader";
+import AppHeader from "../AppHeader";
 import FundingHero, { type BankStatus } from "./FundingHero";
 import StageLadder from "./StageLadder";
 import Scenarios from "./Scenarios";
@@ -163,15 +163,28 @@ export default function CompanionPage() {
           : "No bank import yet",
   };
 
+  // One Refresh for everything live on this page.
   const refresh = () => {
     tbow.reload();
-    if (bank) latest.reload();
+    hiscores.reload();
+    crystalKeys.reload();
+    flips.reload();
+    if (bank) {
+      latest.reload();
+      daily.reload();
+    }
   };
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
       <div className="max-w-7xl mx-auto space-y-6">
-        <CompanionHeader username={USERNAME} onRefresh={refresh} refreshing={tbow.loading} />
+        <AppHeader
+          icon={Crosshair}
+          title="T-bow Companion"
+          subtitle={`Funding plan: ${USERNAME}`}
+          onRefresh={refresh}
+          refreshing={tbow.loading || hiscores.loading}
+        />
 
         {unsaved && (
           <Notice tone="error">
