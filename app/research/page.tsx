@@ -44,18 +44,6 @@ export default function ResearchPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <AppHeader icon={BookOpen} title="Research" subtitle="Claims checked against your account" />
 
-        <Card aria-labelledby="research-how">
-          <CardTitle id="research-how" icon={BookOpen} aside={`${rateCount} personal rate${rateCount === 1 ? "" : "s"} in use`}>
-            How this works
-          </CardTitle>
-          <p className="mt-3 text-xs text-neutral-400 leading-relaxed">
-            Research is added in a Claude Code session, not here: paste a YouTube transcript or a Gemini summary and say
-            &ldquo;add to research&rdquo;. Each claim is checked against the OSRS Wiki, live prices and your gear, stats
-            and kill counts, then saved in the repo. Personal rates from verified claims feed the method ranking on the
-            T-bow page until you have your own 10-hour log.
-          </p>
-        </Card>
-
         <Card aria-labelledby="claims-title">
           <CardTitle id="claims-title" icon={Search} aside={research.data ? `${claims.length} of ${research.data.claims.length}` : undefined}>
             Claims
@@ -73,7 +61,7 @@ export default function ResearchPage() {
               />
             </label>
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Status">
-              {(["ALL", ...CLAIM_STATUSES] as const).map((s) => (
+              {(["ALL", ...CLAIM_STATUSES.filter((s) => counts[s] || status === s)] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -113,6 +101,18 @@ export default function ResearchPage() {
               <ClaimCard key={c.id} claim={c} inUse={RESEARCH_RATES[c.methodId ?? ""]?.claimId === c.id} />
             ))}
           </ul>
+        </Card>
+
+        <Card aria-labelledby="research-how">
+          <CardTitle id="research-how" icon={BookOpen} aside={`${rateCount} personal rate${rateCount === 1 ? "" : "s"} in use`}>
+            How this works
+          </CardTitle>
+          <p className="mt-3 text-xs text-neutral-400 leading-relaxed">
+            Research is added in a Claude Code session, not here: paste a YouTube transcript or a Gemini summary and say
+            &ldquo;add to research&rdquo;. Each claim is checked against the OSRS Wiki, live prices and your gear, stats
+            and kill counts, then saved in the repo. Personal rates from verified claims feed the method ranking on the
+            T-bow page until you have your own 10-hour log.
+          </p>
         </Card>
       </div>
     </div>

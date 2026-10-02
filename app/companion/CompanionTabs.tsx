@@ -15,7 +15,7 @@ const TABS: { id: CompanionTab; label: string; short: string; Icon: typeof Map }
 /** Sticky tab bar, styled like the roadmap's Overview / Goals tabs. */
 export default function CompanionTabs({ tab, onChange }: { tab: CompanionTab; onChange: (t: CompanionTab) => void }) {
   return (
-    <div className="sticky top-0 z-20 -mx-1 px-1 py-2 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
+    <div className="sticky top-0 z-20 -mx-1 -mt-6 px-1 pt-8 pb-2 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
       <div role="tablist" aria-label="T-bow sections" className="flex w-full sm:inline-flex sm:w-auto gap-1 bg-neutral-900 border border-neutral-800 rounded-2xl p-1 overflow-x-auto">
         {TABS.map(({ id, label, short, Icon }) => (
           <button

@@ -41,7 +41,7 @@ export default function SkillTable({ skills, selections, onMethodChange, gains, 
       <table className="w-full min-w-[900px] text-xs">
         <thead>
           <tr className="border-b border-neutral-800">
-            <th className={th}>Skill</th>
+            <th className={`${th} sticky left-0 z-10 bg-neutral-900`}>Skill</th>
             <th className={thR}>Levels left</th>
             <th className={th}>99%</th>
             <th className={thR}>This {period}</th>
@@ -75,7 +75,7 @@ export default function SkillTable({ skills, selections, onMethodChange, gains, 
                   skill.isMaxed ? "opacity-40" : near ? "bg-yellow-600/[0.04]" : ""
                 }`}
               >
-                <td className="px-3 py-2.5">
+                <td className="px-3 py-2.5 sticky left-0 z-10 bg-neutral-900 shadow-[1px_0_0_0_rgb(38_38_38)] sm:shadow-none">
                   <div className="flex items-center gap-2">
                     <span className="text-base">{ICON_MAP[skill.name] || "❓"}</span>
                     <div>

@@ -113,7 +113,7 @@ export default function Today({ className = "", xpBySkill, selections }: Props) 
       </div>
 
       {mode === "bossing" && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+        <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-3 text-xs">
           <TierSelect label="CA tier now" value={state.caTier} onChange={(caTier) => update({ caTier })} />
           <TierSelect label="CA goal" value={state.caTarget} onChange={(caTarget) => update({ caTarget })} />
         </div>
@@ -193,7 +193,7 @@ function WeekMeter({
 function TierSelect({ label, value, onChange }: { label: string; value: CaTier; onChange: (v: CaTier) => void }) {
   const id = useId();
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-stretch gap-1 sm:flex-row sm:items-center sm:gap-2 min-w-0">
       <label htmlFor={id} className={LABEL}>
         {label}
       </label>

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import {
   Trophy,
-  Clock,
   Zap,
   Target,
   RefreshCw,
@@ -14,10 +13,8 @@ import {
   EyeOff,
   Coins,
   ListOrdered,
-  Calendar,
   Hourglass,
   LayoutDashboard,
-  Flag,
   ListChecks,
   Play,
 } from "lucide-react";
@@ -399,7 +396,7 @@ export default function App() {
         />
 
         {/* Tab nav */}
-        <div className="sticky top-0 z-20 -mx-1 px-1 py-2 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
+        <div className="sticky top-0 z-20 -mx-1 -mt-6 px-1 pt-8 pb-2 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
           <div className="inline-flex gap-1 bg-neutral-900 border border-neutral-800 rounded-2xl p-1">
             <button
               onClick={() => setTab("dashboard")}
@@ -659,15 +656,17 @@ export default function App() {
         {/* Section Controls */}
         {tab === "dashboard" && (
         <>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-1">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-1">
           <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-3">
             <Target className="w-5 h-5 text-yellow-600" /> Active Skill Goals
           </h3>
 
-          <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
+          <div className="col-span-2 flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800" role="group" aria-label="Order">
             <button
+              aria-pressed={orderType === "efficient"}
               onClick={() => handleOrderChange("efficient")}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
                 orderType === "efficient"
                   ? "bg-neutral-800 text-yellow-500 shadow-inner"
                   : "text-neutral-500 hover:text-neutral-300"
@@ -676,8 +675,9 @@ export default function App() {
               <Zap className="w-3 h-3" /> Efficient Ordering
             </button>
             <button
+              aria-pressed={orderType === "xp"}
               onClick={() => handleOrderChange("xp")}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
                 orderType === "xp"
                   ? "bg-neutral-800 text-yellow-500 shadow-inner"
                   : "text-neutral-500 hover:text-neutral-300"
@@ -687,15 +687,16 @@ export default function App() {
             </button>
           </div>
 
-          <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800">
+          <div className="col-span-2 flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800" role="group" aria-label="Period">
             {(["week", "month"] as const).map((p) => (
               <button
                 key={p}
+                aria-pressed={period === p}
                 onClick={() => {
                   setPeriod(p);
                   persist({ period: p });
                 }}
-                className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
+                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${
                   period === p ? "bg-neutral-800 text-yellow-500 shadow-inner" : "text-neutral-500 hover:text-neutral-300"
                 }`}
               >
@@ -705,12 +706,13 @@ export default function App() {
           </div>
 
           <button
+            aria-pressed={mobileOnly}
             onClick={() => {
               const v = !mobileOnly;
               setMobileOnly(v);
               persist({ mobileOnly: v });
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
               mobileOnly
                 ? "bg-green-600/15 text-green-500 border-green-700/40"
                 : "bg-neutral-900 text-neutral-500 border-neutral-800 hover:text-neutral-300"
@@ -720,8 +722,9 @@ export default function App() {
           </button>
 
           <button
+            aria-pressed={editLevels}
             onClick={() => setEditLevels((v) => !v)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
               editLevels || Object.keys(levelOverrides).length > 0
                 ? "bg-yellow-600/15 text-yellow-500 border-yellow-700/40"
                 : "bg-neutral-900 text-neutral-500 border-neutral-800 hover:text-neutral-300"
@@ -732,6 +735,7 @@ export default function App() {
               <span className="font-mono">· {Object.keys(levelOverrides).length}</span>
             )}
           </button>
+          </div>
         </div>
 
         {editLevels && (
