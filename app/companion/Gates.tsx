@@ -90,7 +90,7 @@ export default function Gates({ className = "", dt2Complete, onDt2Change, hiscor
       </div>
 
       <p className="mt-4 text-[11px] text-neutral-500 leading-relaxed">
-        The learning baseline will come from session logs in the next phase.
+        Kill counts are lifetime totals. Your learning baseline comes from the session log below.
       </p>
     </Card>
   );

@@ -2,7 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import { CHECKLIST, DEFAULT_STATE } from "@/lib/companion/goal";
-import type { BankImport, BankItem, ChecklistId, CompanionState } from "@/lib/companion/types";
+import type { BankImport, BankItem, ChecklistId, CompanionState, Session } from "@/lib/companion/types";
 
 export const COMPANION_STORAGE_KEY = "osrs-companion-fr3nchy";
 
@@ -23,6 +23,31 @@ function mergeBank(raw: unknown): BankImport | null {
       isRec(i) && Number.isInteger(i.itemId) && typeof i.name === "string" && isNum(i.quantity) && i.quantity > 0
   );
   return { importedAt: raw.importedAt, items: items.map(({ itemId, name, quantity }) => ({ itemId, name, quantity })) };
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const gp = (v: unknown) => (isNum(v) && v >= 0 ? v : 0);
+
+/** Logged sessions, dropping any that are malformed rather than the whole log. */
+function mergeSessions(raw: unknown): Session[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Session[] = [];
+  for (const s of raw) {
+    if (!isRec(s) || typeof s.id !== "string" || typeof s.methodId !== "string") continue;
+    if (typeof s.date !== "string" || !DATE_RE.test(s.date) || !isNum(s.hours) || s.hours <= 0) continue;
+    out.push({
+      id: s.id,
+      date: s.date,
+      methodId: s.methodId,
+      hours: s.hours,
+      kills: isNum(s.kills) && s.kills >= 0 ? s.kills : null,
+      lootGp: gp(s.lootGp),
+      suppliesGp: gp(s.suppliesGp),
+      upkeepGp: gp(s.upkeepGp),
+      deathCostGp: gp(s.deathCostGp),
+    });
+  }
+  return out;
 }
 
 /**
@@ -64,6 +89,9 @@ export function mergeState(raw: unknown): CompanionState {
       ? raw.keepItemIds.filter((n): n is number => Number.isInteger(n))
       : DEFAULT_STATE.keepItemIds,
     useBankImport: flag("useBankImport"),
+    sessions: mergeSessions(raw.sessions),
+    customGpPerHour: amount("customGpPerHour"),
+    noWilderness: flag("noWilderness"),
   };
 }
 

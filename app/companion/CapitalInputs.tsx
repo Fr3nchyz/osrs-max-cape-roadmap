@@ -89,7 +89,28 @@ export default function CapitalInputs({ className = "", state, update, bankActiv
         />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-4">
+        <NumberField
+          label="Custom scenario rate"
+          unit="M gp / h"
+          scale={MILLION}
+          value={state.customGpPerHour}
+          onChange={(customGpPerHour) => update({ customGpPerHour })}
+          hint={
+            state.customGpPerHour > 0
+              ? "Adds a Custom card to Time to goal"
+              : "0 = off. Set a rate to add a Custom card to Time to goal"
+          }
+        />
+      </div>
+
+      <div className="mt-5 space-y-2">
+        <Toggle
+          label="No Wilderness"
+          hint="Hide Wilderness methods from the session log and Next best action"
+          checked={state.noWilderness}
+          onChange={(noWilderness) => update({ noWilderness })}
+        />
         <Toggle
           label="I own the T-bow"
           hint="Moves the plan to the Rebuild stage"
