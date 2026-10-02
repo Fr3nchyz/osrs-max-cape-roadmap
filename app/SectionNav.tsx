@@ -11,8 +11,8 @@ const SECTIONS = [
 ] as const;
 
 // Site-level switch between the two pages. Styled like the roadmap's tab bar.
-// Between md and xl it shares a header row with the title and buttons, so the
-// labels shorten there, and again on phones (below sm); between sm and md the full labels return.
+// Between lg and xl it shares a header row with the title and buttons, so the
+// labels shorten there, and again on phones (below sm); between sm and lg the full labels return.
 export default function SectionNav() {
   const pathname = usePathname();
 
@@ -33,9 +33,9 @@ export default function SectionNav() {
             >
               <s.Icon className="w-4 h-4 shrink-0 max-[419px]:hidden" aria-hidden />
               <span>
-                {s.lead && <span className="max-sm:hidden md:max-xl:hidden">{s.lead}</span>}
+                {s.lead && <span className="max-sm:hidden lg:max-xl:hidden">{s.lead}</span>}
                 {s.short}
-                {s.tail && <span className="max-sm:hidden md:max-xl:hidden">{s.tail}</span>}
+                {s.tail && <span className="max-sm:hidden lg:max-xl:hidden">{s.tail}</span>}
               </span>
             </Link>
           );

@@ -7,7 +7,7 @@ import { CLAIM_STATUSES, RESEARCH_RATES, type Claim, type ClaimStatus } from "@/
 import type { ResearchResponse } from "../api/research/route";
 import { useJson } from "../companion/useLive";
 import { Card, CardTitle, LABEL, Loading, Notice, RetryButton } from "../companion/ui";
-import SectionNav from "../SectionNav";
+import AppHeader from "../AppHeader";
 
 const STATUS: Record<ClaimStatus, { label: string; Icon: typeof CheckCircle2; cls: string }> = {
   VERIFIED: { label: "Verified", Icon: CheckCircle2, cls: "text-green-500" },
@@ -42,20 +42,7 @@ export default function ResearchPage() {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
       <div className="max-w-7xl mx-auto space-y-6">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-500 to-yellow-700 flex items-center justify-center shadow-lg shadow-yellow-900/40">
-              <BookOpen className="w-7 h-7 text-white" aria-hidden />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase">Research</h1>
-              <p className="text-[11px] font-black text-neutral-500 uppercase tracking-widest">
-                Claims checked against your account
-              </p>
-            </div>
-          </div>
-          <SectionNav />
-        </header>
+        <AppHeader icon={BookOpen} title="Research" subtitle="Claims checked against your account" />
 
         <Card aria-labelledby="research-how">
           <CardTitle id="research-how" icon={BookOpen} aside={`${rateCount} personal rate${rateCount === 1 ? "" : "s"} in use`}>
