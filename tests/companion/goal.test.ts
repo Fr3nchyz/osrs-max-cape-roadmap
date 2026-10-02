@@ -20,8 +20,11 @@ import type { BankValuation, ChecklistId, CompanionState, Funding } from "@/lib/
 /** T-bow price used by the knowledge base's own worked figure. */
 const PLAN_PRICE = 1_356_626_084;
 
+/** The knowledge base's own capital figures, which its worked numbers use. */
+const PLAN_CAPITAL = { cashGp: 60_000_000, tradeablesGp: 600_000_000 };
+
 function state(overrides: Partial<CompanionState> = {}): CompanionState {
-  return { ...DEFAULT_STATE, checklist: {}, keepItemIds: [], ...overrides };
+  return { ...DEFAULT_STATE, ...PLAN_CAPITAL, checklist: {}, keepItemIds: [], ...overrides };
 }
 
 function valuation(overrides: Partial<BankValuation> = {}): BankValuation {
@@ -72,7 +75,7 @@ describe("approxNetProceeds", () => {
 
 describe("computeFunding", () => {
   it("reproduces the knowledge base's 721,626,084 gap before costs", () => {
-    const f = computeFunding(DEFAULT_STATE, PLAN_PRICE, null);
+    const f = computeFunding(state(), PLAN_PRICE, null);
     expect(f.gapBeforeCostsGp).toBe(721_626_084);
   });
 
@@ -176,8 +179,18 @@ describe("fundingStage", () => {
   });
 
   it("puts the plan's own gap in Accumulation", () => {
-    const f = computeFunding(DEFAULT_STATE, PLAN_PRICE, null);
+    const f = computeFunding(state(), PLAN_PRICE, null);
     expect(fundingStage(f.gapGp, DEFAULT_STATE.ownsTbow)).toBe("ACCUMULATION");
+  });
+
+  it("defaults to the 2026-10-02 bank baseline, Fletching stock kept", () => {
+    expect(DEFAULT_STATE.cashGp).toBe(68_843_184 + 709 * 1000);
+    expect(DEFAULT_STATE.keepItemIds).toEqual(expect.arrayContaining([21350, 21338, 53, 314]));
+    // 613.5M at 2% tax + 1% slippage -> 595,217,700 net; with cash, 664.77M of a 1.365b target.
+    const f = computeFunding(DEFAULT_STATE, 1_339_968_419, null);
+    expect(f.tradeablesNetGp).toBe(595_217_700);
+    expect(f.gapGp).toBe(1_339_968_419 + 25_000_000 - 69_552_184 - 595_217_700);
+    expect(fundingStage(f.gapGp, false)).toBe("ACCUMULATION");
   });
 
   it("only returns stages listed in STAGE_ORDER", () => {

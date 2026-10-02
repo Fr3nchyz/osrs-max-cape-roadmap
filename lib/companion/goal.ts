@@ -15,10 +15,33 @@ import type {
   ScenarioResult,
 } from "./types";
 
+/**
+ * Bank Memory items kept out of liquidation by default: Fletching stock for
+ * the max cape (the checklist requires it untouched).
+ */
+export const DEFAULT_KEEP_ITEM_IDS: number[] = [
+  21350, // Amethyst arrowtips
+  21338, // Amethyst bolt tips
+  53, // Headless arrow
+  314, // Feather
+  19584, // Javelin shaft
+  11876, // Unfinished broad bolts
+  9194, // Onyx bolt tips
+  1517, // Maple logs
+  1515, // Yew logs
+  1513, // Magic logs
+];
+
+/**
+ * Baseline from fr3nchy's Bank Memory export of 2026-10-02, valued at live
+ * prices (T-bow 1.34b): coins 68,843,184 + 709 platinum tokens; tradeables
+ * are the priced, sellable items at guide value with the Fletching stock in
+ * DEFAULT_KEEP_ITEM_IDS left out. A fresh bank import replaces both.
+ */
 export const DEFAULT_STATE: CompanionState = {
   version: 1,
-  cashGp: 60_000_000,
-  tradeablesGp: 600_000_000,
+  cashGp: 69_552_184,
+  tradeablesGp: 613_500_000,
   // Knowledge base asks for an "explicit slippage reserve" without a number; 1% is an editable default.
   slippagePct: 1,
   reserveGp: 25_000_000,
@@ -28,7 +51,7 @@ export const DEFAULT_STATE: CompanionState = {
   dt2Complete: false,
   checklist: {},
   bank: null,
-  keepItemIds: [],
+  keepItemIds: DEFAULT_KEEP_ITEM_IDS,
   useBankImport: false,
 };
 
