@@ -60,7 +60,9 @@ export function mergeState(raw: unknown): CompanionState {
     dt2Complete: flag("dt2Complete"),
     checklist,
     bank: mergeBank(raw.bank),
-    keepItemIds: Array.isArray(raw.keepItemIds) ? raw.keepItemIds.filter((n): n is number => Number.isInteger(n)) : [],
+    keepItemIds: Array.isArray(raw.keepItemIds)
+      ? raw.keepItemIds.filter((n): n is number => Number.isInteger(n))
+      : DEFAULT_STATE.keepItemIds,
     useBankImport: flag("useBankImport"),
   };
 }
