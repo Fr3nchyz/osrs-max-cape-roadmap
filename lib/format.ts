@@ -18,7 +18,9 @@ export function formatGp(value: number | null | undefined, opts: { sign?: boolea
 /** Two significant decimals below 10, one below 100, none above. */
 function trim(value: number): string {
   const decimals = value < 10 ? 2 : value < 100 ? 1 : 0;
-  return value.toFixed(decimals).replace(/\.?0+$/, "");
+  const s = value.toFixed(decimals);
+  // Strip trailing zeros from the decimals only: 1.50 -> 1.5, 2.00 -> 2, but 550 stays 550.
+  return s.includes(".") ? s.replace(/\.?0+$/, "") : s;
 }
 
 export function formatFullGp(value: number | null | undefined): string {

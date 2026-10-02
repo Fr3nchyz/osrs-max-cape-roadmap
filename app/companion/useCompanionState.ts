@@ -98,6 +98,14 @@ export function mergeState(raw: unknown): CompanionState {
     pvmShare: isNum(raw.pvmShare) ? clampPvmShare(raw.pvmShare) : DEFAULT_STATE.pvmShare,
     caTier: isCaTier(raw.caTier) ? raw.caTier : DEFAULT_STATE.caTier,
     caTarget: isCaTier(raw.caTarget) ? raw.caTarget : DEFAULT_STATE.caTarget,
+    sellSelection: isRec(raw.sellSelection)
+      ? Object.fromEntries(
+          Object.entries(raw.sellSelection).filter(
+            (e): e is [string, number] => /^\d+$/.test(e[0]) && isNum(e[1]) && e[1] > 0
+          )
+        )
+      : {},
+    flipBudgetGp: amount("flipBudgetGp"),
   };
 }
 
