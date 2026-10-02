@@ -61,6 +61,8 @@ export const DEFAULT_STATE: CompanionState = {
   pvmShare: 0.25,
   caTier: "None",
   caTarget: "None",
+  sellSelection: {},
+  flipBudgetGp: 0,
 };
 
 /**

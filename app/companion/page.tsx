@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { RefreshCw } from "lucide-react";
 import { formatAge, formatGp } from "@/lib/format";
 import {
+  weeklySplit,
   clampPvmShare,
   computeFunding,
   evaluateChecklist,
@@ -12,7 +13,12 @@ import {
   weeklyHours,
 } from "@/lib/companion/goal";
 import { valueBank } from "@/lib/companion/bank";
-import { BASELINE_FLETCHING_STOCK, fletchingCoverage, fletchingXp } from "@/lib/companion/fletching";
+import {
+  BASELINE_FLETCHING_STOCK,
+  downtimeFletchingXp,
+  fletchingCoverage,
+  fletchingXp,
+} from "@/lib/companion/fletching";
 import { PVM_METHODS, availableMethods } from "@/lib/companion/methods";
 import { nextMilestone, xpFromHiscores } from "@/lib/maxOrder";
 import { nextAction } from "@/lib/companion/nextAction";
@@ -35,6 +41,12 @@ import Today from "../today/Today";
 import Recap from "../today/Recap";
 import type { CrystalKeysResponse } from "../api/market/crystal-keys/route";
 import { readRoadmapSelections } from "../today/useWeek";
+import SellPlanner from "./SellPlanner";
+import FlipBook from "./FlipBook";
+import type { DailyResponse } from "../api/prices/daily/route";
+import type { FlipBookResponse } from "../api/market/flips/route";
+import { computeMaxPlan, skillsFromXp } from "../skills";
+import { planEarnRate } from "@/lib/companion/sessions";
 
 const USERNAME = "fr3nchy";
 
@@ -108,6 +120,23 @@ export default function CompanionPage() {
   );
   const fXp = fletchingXp(hiscores.data);
   const fletching = fXp === null ? null : fletchingCoverage(fXp, bank ? bank.items : BASELINE_FLETCHING_STOCK);
+
+  // Sell planner: weeks until max (at your maxing share) and PvM income until then.
+  const split = weeklySplit(state);
+  const weeksToMax = useMemo(() => {
+    if (!hiscores.data || split.maxingHours <= 0) return null;
+    const downtime: Record<string, number> = {};
+    if (fXp !== null) downtime.Fletching = downtimeFletchingXp(fXp, bank ? bank.items : BASELINE_FLETCHING_STOCK);
+    return computeMaxPlan(skillsFromXp(xpBySkill), roadmapSelections, 0, downtime).totalHours / split.maxingHours;
+  }, [hiscores.data, split.maxingHours, fXp, bank, xpBySkill, roadmapSelections]);
+  const weeklyPvmGp = split.pvmHours * planEarnRate(state).gpPerHour;
+  const daily = useJson<DailyResponse>("/api/prices/daily", bank !== null);
+
+  // Flip book: your budget, or cash minus the reserve.
+  const cashNow = funding?.cashGp ?? state.cashGp;
+  const freeCashGp = Math.max(0, cashNow - state.reserveGp);
+  const flipBudgetGp = state.flipBudgetGp > 0 ? state.flipBudgetGp : freeCashGp;
+  const flips = useJson<FlipBookResponse>(`/api/market/flips?budget=${Math.round(flipBudgetGp)}`, ready);
 
   const checklistDetails: Partial<Record<ChecklistId, string>> = {
     priceFresh:
@@ -222,6 +251,25 @@ export default function CompanionPage() {
                 now={now}
               />
             </div>
+
+            <SellPlanner
+              state={state}
+              update={update}
+              valuation={valuation}
+              prices={prices}
+              targetGp={funding?.targetGp ?? null}
+              weeklyPvmGp={weeklyPvmGp}
+              weeksToMax={weeksToMax}
+              daily={daily}
+            />
+            <FlipBook
+              state={state}
+              update={update}
+              freeCashGp={freeCashGp}
+              budgetGp={flipBudgetGp}
+              book={flips}
+              now={now}
+            />
           </>
         )}
 

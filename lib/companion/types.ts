@@ -68,6 +68,10 @@ export interface CompanionState {
   /** Combat achievement tiers: current and goal (manual; no public source). */
   caTier: CaTier;
   caTarget: CaTier;
+  /** Sell planner picks: item id -> quantity. */
+  sellSelection: Record<string, number>;
+  /** Flip book budget in gp; 0 = cash minus reserve. */
+  flipBudgetGp: number;
 }
 
 /** One logged PvM session. Net GP = loot - supplies - upkeep - deaths. */

@@ -23,6 +23,8 @@ function row(overrides: Partial<MarketRow>): MarketRow {
     profitPerLimit: 800,
     capitalPerLimit: 10_000,
     hourlyVolume: 1000,
+    avgHigh1h: null,
+    avgLow1h: null,
     flowImbalance: 0,
     gpPerSlotHour: 8000,
     ...overrides,

@@ -35,6 +35,9 @@ export interface MarketRow {
   capitalPerLimit: number | null;
 
   hourlyVolume: number;
+  /** Volume-weighted average prices over the last hour; null when untraded. */
+  avgHigh1h: number | null;
+  avgLow1h: number | null;
   flowImbalance: number;
   /** Expected gp/hour from a single GE slot running this flip. */
   gpPerSlotHour: number;
@@ -102,6 +105,8 @@ export async function getMarketSnapshot(): Promise<MarketRow[]> {
       ...margin,
 
       hourlyVolume: velocity.hourlyVolume,
+      avgHigh1h: volume?.avgHighPrice ?? null,
+      avgLow1h: volume?.avgLowPrice ?? null,
       flowImbalance: velocity.flowImbalance,
       gpPerSlotHour: profitPerSlotHour(margin.netMargin, buyLimit, velocity.hourlyVolume),
     };
