@@ -52,6 +52,43 @@ export interface CompanionState {
   keepItemIds: number[];
   /** When true and a bank import exists, cash and tradeables come from it. */
   useBankImport: boolean;
+  /** Logged PvM sessions, oldest first. */
+  sessions: Session[];
+  /** Extra "Custom" scenario rate in GP per focused hour; 0 = off. */
+  customGpPerHour: number;
+  /** Hide Wilderness methods from the method list and Next Best Action. */
+  noWilderness: boolean;
+}
+
+/** One logged PvM session. Net GP = loot - supplies - upkeep - deaths. */
+export interface Session {
+  id: string;
+  /** Local calendar day, YYYY-MM-DD. */
+  date: string;
+  methodId: string;
+  hours: number;
+  /** Kills or completions; null when not tracked. */
+  kills: number | null;
+  lootGp: number;
+  suppliesGp: number;
+  /** Charges, scales, gear degradation. */
+  upkeepGp: number;
+  /** Reclaim fees and lost loot from deaths. */
+  deathCostGp: number;
+}
+
+/** Totals for one method across its logged sessions. */
+export interface MethodStats {
+  methodId: string;
+  sessions: number;
+  hours: number;
+  netGp: number;
+  /** netGp / hours. */
+  gpPerHour: number;
+  /** kills / hours over sessions that tracked kills; null when none did. */
+  killsPerHour: number | null;
+  /** hours >= LOGGED_HOURS_THRESHOLD: the knowledge base's reliable sample. */
+  qualified: boolean;
 }
 
 export interface BankItem {
@@ -122,7 +159,7 @@ export interface Funding {
   progress: number;
 }
 
-export type ScenarioId = "conservative" | "base" | "aggressive";
+export type ScenarioId = "conservative" | "base" | "aggressive" | "logged" | "custom";
 
 export interface ScenarioResult {
   id: ScenarioId;

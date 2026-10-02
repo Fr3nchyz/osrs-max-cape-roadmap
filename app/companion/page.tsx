@@ -11,7 +11,11 @@ import {
   weeklyHours,
 } from "@/lib/companion/goal";
 import { valueBank } from "@/lib/companion/bank";
-import type { ChecklistId, LatestPricesResponse, TbowPriceResponse } from "@/lib/companion/types";
+import { BASELINE_FLETCHING_STOCK, fletchingCoverage, fletchingXp } from "@/lib/companion/fletching";
+import { availableMethods } from "@/lib/companion/methods";
+import { nextAction } from "@/lib/companion/nextAction";
+import { activeScenario, methodStats, rankMethods, rollingRate } from "@/lib/companion/sessions";
+import type { ChecklistId, LatestPricesResponse, ScenarioId, TbowPriceResponse } from "@/lib/companion/types";
 import { useCompanionState } from "./useCompanionState";
 import { useJson, useNow } from "./useLive";
 import { Notice, minutesSince } from "./ui";
@@ -24,6 +28,8 @@ import Gates from "./Gates";
 import CapitalInputs from "./CapitalInputs";
 import BankImport from "./BankImport";
 import Backup from "./Backup";
+import NextBestAction from "./NextBestAction";
+import SessionLog from "./SessionLog";
 
 const USERNAME = "fr3nchy";
 
@@ -65,7 +71,31 @@ export default function CompanionPage() {
   const evaluation = funding
     ? evaluateChecklist(state, funding, priceAgeMinutes, itemPriceAgeMinutes, new Date(now))
     : null;
-  const scenarioResults = funding ? scenarios(funding.gapGp, state.weekdayHours, state.weekendHours) : null;
+  // Session log -> realized rates, the active scenario and the method ranking.
+  const stats = useMemo(() => methodStats(state.sessions), [state.sessions]);
+  const rolling = useMemo(() => rollingRate(state.sessions), [state.sessions]);
+  const active = activeScenario(stats, rolling);
+  const extraRates: { id: ScenarioId; label: string; gpPerHour: number }[] = [];
+  if (rolling !== null) extraRates.push({ id: "logged", label: "Your rate", gpPerHour: rolling });
+  if (state.customGpPerHour > 0) extraRates.push({ id: "custom", label: "Custom", gpPerHour: state.customGpPerHour });
+  const scenarioResults = funding
+    ? scenarios(funding.gapGp, state.weekdayHours, state.weekendHours, extraRates)
+    : null;
+
+  const { ranked, unrated } = rankMethods(
+    availableMethods({ dt2Complete: state.dt2Complete, noWilderness: state.noWilderness }),
+    stats
+  );
+  const weekendDay = now > 0 && [0, 6].includes(new Date(now).getDay());
+  const action = nextAction({
+    ownsTbow: state.ownsTbow,
+    dt2Complete: state.dt2Complete,
+    stats,
+    weekend: weekendDay,
+    topMethod: ranked[0]?.method.name ?? null,
+  });
+  const fXp = fletchingXp(hiscores.data);
+  const fletching = fXp === null ? null : fletchingCoverage(fXp, bank ? bank.items : BASELINE_FLETCHING_STOCK);
 
   const checklistDetails: Partial<Record<ChecklistId, string>> = {
     priceFresh:
@@ -121,8 +151,19 @@ export default function CompanionPage() {
               <StageLadder className="lg:col-span-4" stage={stage} />
             </div>
 
+            <NextBestAction
+              action={action}
+              ranked={ranked}
+              unrated={unrated}
+              noWilderness={state.noWilderness}
+              fletching={fletching}
+              stockFromImport={bank !== null}
+              hiscores={hiscores}
+            />
+
             <Scenarios
               results={scenarioResults}
+              active={active}
               weeklyHours={weeklyHours(state.weekdayHours, state.weekendHours)}
               weekdayHours={state.weekdayHours}
               weekendHours={state.weekendHours}
@@ -147,6 +188,8 @@ export default function CompanionPage() {
                 hiscores={hiscores}
               />
             </div>
+
+            <SessionLog state={state} update={update} stats={stats} rolling={rolling} />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
               <div className="lg:col-span-5 space-y-4 min-w-0">

@@ -6,12 +6,10 @@ import { PVM_SHARE } from "@/lib/companion/goal";
 import type { ScenarioId, ScenarioResult } from "@/lib/companion/types";
 import { Card, CardTitle, LABEL, Notice, formatDay, formatHours } from "./ui";
 
-/** Until session logging lands, nothing has 10 logged hours, so the plan stays conservative. */
-const ACTIVE: ScenarioId = "conservative";
-const ACTIVE_REASON = "No logged hours yet — the plan uses conservative until a method has 10 logged hours";
-
 type Props = {
   results: ScenarioResult[] | null;
+  /** The knowledge base's scenario selection rule, from the session log. */
+  active: { id: ScenarioId; reason: string };
   weeklyHours: number;
   weekdayHours: number;
   weekendHours: number;
@@ -21,7 +19,7 @@ type Props = {
 
 const hrs = (n: number) => `${Number(n.toFixed(2))}h`;
 
-export default function Scenarios({ results, weeklyHours, weekdayHours, weekendHours, ownsTbow, now }: Props) {
+export default function Scenarios({ results, active, weeklyHours, weekdayHours, weekendHours, ownsTbow, now }: Props) {
   return (
     <Card aria-labelledby="scenarios-title">
       <CardTitle
@@ -46,14 +44,16 @@ export default function Scenarios({ results, weeklyHours, weekdayHours, weekendH
         </div>
       ) : (
         <>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div
+            className={`mt-4 grid grid-cols-1 gap-3 ${results.length <= 3 ? "sm:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-3"}`}
+          >
             {results.map((r) => (
-              <ScenarioCard key={r.id} result={r} active={r.id === ACTIVE} now={now} />
+              <ScenarioCard key={r.id} result={r} active={r.id === active.id} now={now} />
             ))}
           </div>
           <p className="mt-4 flex items-start gap-2 text-xs text-neutral-400">
             <Info className="w-3.5 h-3.5 mt-px shrink-0 text-yellow-600" aria-hidden />
-            <span>{ACTIVE_REASON}.</span>
+            <span>{active.reason}.</span>
           </p>
           <p className="mt-1.5 pl-5.5 text-[11px] text-neutral-500">
             Focused hours are income-producing PvM at the scenario&apos;s rate. Total gameplay assumes{" "}

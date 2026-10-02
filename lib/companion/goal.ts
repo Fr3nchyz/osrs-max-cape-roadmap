@@ -53,6 +53,9 @@ export const DEFAULT_STATE: CompanionState = {
   bank: null,
   keepItemIds: DEFAULT_KEEP_ITEM_IDS,
   useBankImport: false,
+  sessions: [],
+  customGpPerHour: 0,
+  noWilderness: true,
 };
 
 /**
@@ -204,11 +207,20 @@ export function weeklyHours(weekdayHours: number, weekendHours: number): number 
   return weekdayHours * 5 + weekendHours * 2;
 }
 
-/** One result per SCENARIO_RATES entry, same order. */
-export function scenarios(gapGp: number, weekdayHours: number, weekendHours: number): ScenarioResult[] {
+/**
+ * One result per SCENARIO_RATES entry, same order, then one per `extra` rate
+ * (your logged rate, a custom rate). Rates at or below zero are skipped: no
+ * number of hours closes a gap at a loss.
+ */
+export function scenarios(
+  gapGp: number,
+  weekdayHours: number,
+  weekendHours: number,
+  extra: { id: ScenarioId; label: string; gpPerHour: number }[] = [],
+): ScenarioResult[] {
   const gap = Math.max(0, gapGp);
   const perWeek = weeklyHours(weekdayHours, weekendHours);
-  return SCENARIO_RATES.map(({ id, label, gpPerHour }) => {
+  return [...SCENARIO_RATES, ...extra.filter((e) => e.gpPerHour > 0)].map(({ id, label, gpPerHour }) => {
     const focusedHours = gap / gpPerHour;
     const totalHours = focusedHours / PVM_SHARE;
     return {
