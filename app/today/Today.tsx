@@ -12,6 +12,7 @@ import { methodStats, rankMethods } from "@/lib/companion/sessions";
 import { nextMilestone } from "@/lib/maxOrder";
 import { CA_TIERS, TODAY_MINUTES, TODAY_MODES, defaultMode, suggestToday, type CaTier, type TodayMode } from "@/lib/today";
 import { useWeek } from "./useWeek";
+import { RESEARCH_RATES } from "@/lib/research";
 
 type Props = {
   className?: string;
@@ -50,7 +51,8 @@ export default function Today({ className = "", xpBySkill, selections }: Props) 
   const stats = methodStats(state.sessions);
   const { ranked } = rankMethods(
     availableMethods({ dt2Complete: state.dt2Complete, noWilderness: state.noWilderness }),
-    stats
+    stats,
+    RESEARCH_RATES
   );
   const lowAttention = PVM_METHODS.filter((m) => m.lowAttention && !(state.noWilderness && m.wilderness));
   const day = new Date().getDay();

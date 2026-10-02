@@ -73,6 +73,8 @@ export default function NextBestAction({
                   <span className="block text-[11px] text-neutral-500">
                     {r.source === "logged"
                       ? `Your rate over ${Number(r.stats!.hours.toFixed(1))}h logged`
+                      : r.source === "research"
+                        ? "Your researched rate (Research page)"
                       : r.stats
                         ? `Planning low until 10h logged (${Number(r.stats.hours.toFixed(1))}h so far)`
                         : "Knowledge-base planning low"}

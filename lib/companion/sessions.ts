@@ -93,25 +93,31 @@ export interface RankedMethod {
   method: PvmMethod;
   /** GP per focused hour used for ranking. */
   gpPerHour: number;
-  /** "logged" once the method has 10 hours; otherwise the learner planning low (the learning penalty). */
-  source: "logged" | "planning";
+  /**
+   * "logged" once the method has 10 hours; else "research" when a verified
+   * claim gives a personal rate; else the learner planning low (the learning penalty).
+   */
+  source: "logged" | "research" | "planning";
   stats: MethodStats | null;
 }
 
 /**
  * Ranks methods by conservative realized GP/hour: your logged rate once a
- * method has 10 hours, else the low end of its learner range. Methods with
- * neither are returned in `unrated`.
+ * method has 10 hours, else a researched personal rate, else the low end of
+ * its learner range. Methods with none of these are returned in `unrated`.
  */
 export function rankMethods(
   methods: PvmMethod[],
   stats: MethodStats[],
+  researchRates: Record<string, { gpPerHour: number }> = {},
 ): { ranked: RankedMethod[]; unrated: PvmMethod[] } {
   const ranked: RankedMethod[] = [];
   const unrated: PvmMethod[] = [];
   for (const method of methods) {
     const st = stats.find((s) => s.methodId === method.id) ?? null;
+    const researched = researchRates[method.id];
     if (st?.qualified) ranked.push({ method, gpPerHour: st.gpPerHour, source: "logged", stats: st });
+    else if (researched) ranked.push({ method, gpPerHour: researched.gpPerHour, source: "research", stats: st });
     else if (method.learner) ranked.push({ method, gpPerHour: method.learner[0], source: "planning", stats: st });
     else unrated.push(method);
   }
