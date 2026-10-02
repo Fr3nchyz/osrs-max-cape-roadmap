@@ -1,0 +1,93 @@
+[
+  {
+    "id": "2026-10-01-toa-8-10m",
+    "addedAt": "2026-10-01",
+    "source": "chat-paste",
+    "creator": null,
+    "url": null,
+    "publishedAt": null,
+    "method": "Tombs of Amascut",
+    "methodId": "toa",
+    "claimedGpPerHour": 9000000,
+    "assumptions": "Next-version spec pasted in chat: ToA at 8-10M GP/hr",
+    "checkedGpPerHour": 3600000,
+    "personalGpPerHour": 1500000,
+    "status": "INFLATED",
+    "notes": [
+      "The knowledge base's own wiki model is ~3.6M/hr at deathless 300 invocation.",
+      "fr3nchy has 0 ToA KC: plan with the learner range, 1.5-2.5M/hr."
+    ],
+    "sourceFile": "research/sources/2026-09-30-knowledge-base.md"
+  },
+  {
+    "id": "2026-09-30-doom-9-74m",
+    "addedAt": "2026-10-02",
+    "source": "knowledge-base",
+    "creator": null,
+    "url": "https://oldschool.runescape.wiki/w/Doom_of_Mokhaiotl",
+    "publishedAt": "2026-09-30",
+    "method": "Doom of Mokhaiotl (delves 1-8)",
+    "methodId": "doom",
+    "claimedGpPerHour": 9740000,
+    "assumptions": "Wiki model, full 1-8 cycles, competent",
+    "checkedGpPerHour": null,
+    "personalGpPerHour": 2500000,
+    "status": "INFLATED",
+    "notes": ["Knowledge base marks it INFLATED for a learner; plan from the learner low end (2.5M/hr)."],
+    "sourceFile": "research/sources/2026-09-30-knowledge-base.md"
+  },
+  {
+    "id": "2026-10-02-frost-dragons",
+    "addedAt": "2026-10-02",
+    "source": "wiki",
+    "creator": "OSRS Wiki",
+    "url": "https://oldschool.runescape.wiki/w/Money_making_guide/Killing_Frost_dragons_(off-task)",
+    "publishedAt": null,
+    "method": "Frost dragons",
+    "methodId": "frost-dragons",
+    "claimedGpPerHour": 2034706,
+    "assumptions": "138 kills/hr, off-task, max melee gear (DHL, Torva)",
+    "checkedGpPerHour": 2034706,
+    "personalGpPerHour": null,
+    "status": "VERIFIED",
+    "notes": ["Figure is right for the guide's setup; fr3nchy's gear is lower, so expect less until trips are logged."],
+    "sourceFile": "research/sources/2026-10-02-wiki-money-making.md"
+  },
+  {
+    "id": "2026-10-02-adamant-dragons",
+    "addedAt": "2026-10-02",
+    "source": "wiki",
+    "creator": "OSRS Wiki",
+    "url": "https://oldschool.runescape.wiki/w/Money_making_guide/Killing_adamant_dragons",
+    "publishedAt": null,
+    "method": "Adamant dragons",
+    "methodId": "adamant-dragons",
+    "claimedGpPerHour": 1758768,
+    "assumptions": "About 60 kills/hr",
+    "checkedGpPerHour": 1758768,
+    "personalGpPerHour": null,
+    "status": "VERIFIED",
+    "notes": [],
+    "sourceFile": "research/sources/2026-10-02-wiki-money-making.md"
+  },
+  {
+    "id": "2026-10-02-crystal-keys",
+    "addedAt": "2026-10-02",
+    "source": "wiki",
+    "creator": "OSRS Wiki",
+    "url": "https://oldschool.runescape.wiki/w/Money_making_guide/Creating_crystal_keys",
+    "publishedAt": null,
+    "method": "Making crystal keys",
+    "methodId": "crystal-keys",
+    "claimedGpPerHour": 2180000,
+    "assumptions": "5,000 keys an hour",
+    "checkedGpPerHour": null,
+    "personalGpPerHour": null,
+    "status": "HIGH_RISK",
+    "notes": [
+      "GE volume caps it: live check found ~1,081 keys/day realistic at +636 gp each with patient offers (~690k a day).",
+      "Instant buy and sell loses ~86 gp per key."
+    ],
+    "sourceFile": "research/sources/2026-10-02-wiki-money-making.md"
+  }
+]

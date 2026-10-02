@@ -48,6 +48,7 @@ import type { FlipBookResponse } from "../api/market/flips/route";
 import type { TrendsResponse } from "../api/market/trends/route";
 import { computeMaxPlan, skillsFromXp } from "../skills";
 import { planEarnRate } from "@/lib/companion/sessions";
+import { RESEARCH_RATES } from "@/lib/research";
 
 const USERNAME = "fr3nchy";
 
@@ -103,7 +104,8 @@ export default function CompanionPage() {
 
   const { ranked, unrated } = rankMethods(
     availableMethods({ dt2Complete: state.dt2Complete, noWilderness: state.noWilderness }),
-    stats
+    stats,
+    RESEARCH_RATES
   );
   const weekendDay = now > 0 && [0, 6].includes(new Date(now).getDay());
   const action = nextAction({
