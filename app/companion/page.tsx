@@ -45,6 +45,7 @@ import SellPlanner from "./SellPlanner";
 import FlipBook from "./FlipBook";
 import type { DailyResponse } from "../api/prices/daily/route";
 import type { FlipBookResponse } from "../api/market/flips/route";
+import type { TrendsResponse } from "../api/market/trends/route";
 import { computeMaxPlan, skillsFromXp } from "../skills";
 import { planEarnRate } from "@/lib/companion/sessions";
 
@@ -137,6 +138,15 @@ export default function CompanionPage() {
   const freeCashGp = Math.max(0, cashNow - state.reserveGp);
   const flipBudgetGp = state.flipBudgetGp > 0 ? state.flipBudgetGp : freeCashGp;
   const flips = useJson<FlipBookResponse>(`/api/market/flips?budget=${Math.round(flipBudgetGp)}`, ready);
+  const flipIds = (flips.data?.picks ?? []).map((p) => p.itemId).join(",");
+  const flipTrends = useJson<TrendsResponse>(`/api/market/trends?ids=${flipIds}`, flipIds !== "");
+  // Trends for the sell planner's top rows (biggest sellable stacks).
+  const sellIds = (valuation?.items ?? [])
+    .filter((i) => !i.kept && i.unitPrice !== null && i.netTotal > 0)
+    .slice(0, 30)
+    .map((i) => i.itemId)
+    .join(",");
+  const sellTrends = useJson<TrendsResponse>(`/api/market/trends?ids=${sellIds}`, sellIds !== "");
 
   const checklistDetails: Partial<Record<ChecklistId, string>> = {
     priceFresh:
@@ -188,6 +198,7 @@ export default function CompanionPage() {
                 onRetryBank={latest.reload}
                 bankRetrying={latest.loading}
                 bankImportedAt={bank?.importedAt ?? null}
+                bankIsSnapshot={bank?.baseline === true}
                 slippagePct={state.slippagePct}
                 ownsTbow={state.ownsTbow}
                 now={now}
@@ -261,6 +272,9 @@ export default function CompanionPage() {
               weeklyPvmGp={weeklyPvmGp}
               weeksToMax={weeksToMax}
               daily={daily}
+              trends={sellTrends}
+              bankTakenAt={bank?.importedAt ?? null}
+              bankIsSnapshot={bank?.baseline === true}
             />
             <FlipBook
               state={state}
@@ -268,6 +282,7 @@ export default function CompanionPage() {
               freeCashGp={freeCashGp}
               budgetGp={flipBudgetGp}
               book={flips}
+              trends={flipTrends}
               now={now}
             />
           </>

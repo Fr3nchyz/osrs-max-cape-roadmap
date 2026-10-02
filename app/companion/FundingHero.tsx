@@ -5,7 +5,7 @@ import { formatAge, formatFullGp, formatGp, formatPercent } from "@/lib/format";
 import { GE_TAX_RATE } from "@/lib/market/tax";
 import type { Funding, TbowPriceResponse } from "@/lib/companion/types";
 import type { Remote } from "./useLive";
-import { Card, LABEL, Loading, Notice, RetryButton, minutesSince } from "./ui";
+import { Card, LABEL, Loading, Notice, RetryButton, minutesSince, shortDay } from "./ui";
 
 export type BankStatus = "off" | "valuing" | "unavailable" | "on";
 
@@ -17,6 +17,8 @@ type Props = {
   onRetryBank: () => void;
   bankRetrying: boolean;
   bankImportedAt: string | null;
+  /** The built-in snapshot rather than your own paste. */
+  bankIsSnapshot: boolean;
   slippagePct: number;
   ownsTbow: boolean;
   now: number;
@@ -30,6 +32,7 @@ export default function FundingHero({
   onRetryBank,
   bankRetrying,
   bankImportedAt,
+  bankIsSnapshot,
   slippagePct,
   ownsTbow,
   now,
@@ -40,7 +43,7 @@ export default function FundingHero({
         <p id="funding-gap-label" className={`${LABEL} flex items-center gap-2`}>
           <Coins className="w-3.5 h-3.5 text-yellow-600" aria-hidden /> Funding gap
         </p>
-        {funding && !ownsTbow && <SourceChip funding={funding} importedAt={bankImportedAt} now={now} />}
+        {funding && !ownsTbow && <SourceChip funding={funding} importedAt={bankImportedAt} snapshot={bankIsSnapshot} now={now} />}
       </div>
 
       {ownsTbow ? (
@@ -190,14 +193,26 @@ function Pending({ tbow, bankStatus }: { tbow: Remote<TbowPriceResponse>; bankSt
   );
 }
 
-function SourceChip({ funding, importedAt, now }: { funding: Funding; importedAt: string | null; now: number }) {
+function SourceChip({
+  funding,
+  importedAt,
+  snapshot,
+  now,
+}: {
+  funding: Funding;
+  importedAt: string | null;
+  snapshot: boolean;
+  now: number;
+}) {
   const bank = funding.source === "bank";
   const Icon = bank ? Landmark : Keyboard;
   return (
     <span className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-700/70 bg-neutral-950/50 px-2 py-1 text-[11px] font-black uppercase tracking-wider text-neutral-400">
       <Icon className="w-3.5 h-3.5" aria-hidden />
       {bank
-        ? `From bank import${importedAt ? ` · ${formatAge(minutesSince(importedAt, now))}` : ""}`
+        ? snapshot && importedAt
+          ? `From bank snapshot · ${shortDay(importedAt)}, may be dated`
+          : `From bank import${importedAt ? ` · ${formatAge(minutesSince(importedAt, now))}` : ""}`
         : "From manual inputs"}
     </span>
   );

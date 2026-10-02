@@ -155,3 +155,41 @@ export function minutesSince(then: string | number, now: number): number {
   const t = typeof then === "number" ? then : Date.parse(then);
   return Math.max(0, (now - t) / 60_000);
 }
+
+/** "Oct 2" style day for bank snapshot labels. */
+export function shortDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/** A bank import this old (days) gets a "may be out of date" warning. */
+export const BANK_STALE_DAYS = 7;
+
+/** Tiny line of recent prices; decorative, so callers state the change in text beside it. */
+export function Sparkline({ values, falling }: { values: number[]; falling?: boolean }) {
+  if (values.length < 2) return null;
+  const w = 64;
+  const h = 18;
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  const span = hi - lo || 1;
+  const d = values
+    .map((v, i) => `${i === 0 ? "M" : "L"}${((i / (values.length - 1)) * (w - 2) + 1).toFixed(1)},${(h - 1 - ((v - lo) / span) * (h - 2)).toFixed(1)}`)
+    .join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden className="inline-block align-middle">
+      <path d={d} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={falling ? "stroke-neutral-500" : "stroke-yellow-600"} />
+    </svg>
+  );
+}
+
+/** Trend as icon + text (never colour alone): "↗ +4.2% 7d". */
+export function TrendLabel({ direction, change7d }: { direction: "rising" | "flat" | "falling"; change7d: number | null }) {
+  const arrow = direction === "rising" ? "↗" : direction === "falling" ? "↘" : "→";
+  const word = direction === "rising" ? "Rising" : direction === "falling" ? "Falling" : "Flat";
+  return (
+    <span className={`whitespace-nowrap ${direction === "falling" ? "text-yellow-500 font-bold" : "text-neutral-300"}`} title={word}>
+      <span aria-hidden>{arrow}</span> <span className="sr-only">{word}, </span>
+      {change7d === null ? "--" : `${change7d > 0 ? "+" : ""}${change7d.toFixed(1)}%`}
+    </span>
+  );
+}

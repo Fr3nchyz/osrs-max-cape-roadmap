@@ -7,7 +7,7 @@ import { parseBankMemoryTsv } from "@/lib/companion/bank";
 import type { BankValuation, CompanionState, LatestPricesResponse } from "@/lib/companion/types";
 import type { CompanionUpdate } from "./useCompanionState";
 import type { Remote } from "./useLive";
-import { Card, CardTitle, LABEL, Loading, Notice, RetryButton, Toggle, minutesSince } from "./ui";
+import { BANK_STALE_DAYS, Card, CardTitle, LABEL, Loading, Notice, RetryButton, Toggle, minutesSince, shortDay } from "./ui";
 
 const TOP_N = 25;
 
@@ -33,7 +33,7 @@ export default function BankImport({ className = "", state, update, latest, valu
   const onImport = () => {
     try {
       const { items, skipped } = parseBankMemoryTsv(text);
-      update({ bank: { importedAt: new Date().toISOString(), items } });
+      update({ bank: { importedAt: new Date().toISOString(), items }, bankCleared: false });
       setText("");
       setMessage({
         tone: "info",
@@ -47,7 +47,7 @@ export default function BankImport({ className = "", state, update, latest, valu
   };
 
   const onClear = () => {
-    update({ bank: null, useBankImport: false });
+    update({ bank: null, useBankImport: false, bankCleared: true });
     setMessage(null);
     setShowAll(false);
   };
@@ -65,10 +65,33 @@ export default function BankImport({ className = "", state, update, latest, valu
       <CardTitle
         id="bank-title"
         icon={Landmark}
-        aside={bank ? `${bank.items.length.toLocaleString("en-US")} item rows` : "No import yet"}
+        aside={
+          bank
+            ? `${bank.items.length.toLocaleString("en-US")} item rows${bank.baseline ? " · built-in snapshot" : ""}`
+            : "No import yet"
+        }
       >
         Bank import
       </CardTitle>
+
+      {bank && (bank.baseline || minutesSince(bank.importedAt, now) > BANK_STALE_DAYS * 1440) && (
+        <div className="mt-4">
+          <Notice tone="warn">
+            {bank.baseline ? (
+              <>
+                <span className="font-bold">Using your bank snapshot from {shortDay(bank.importedAt)}</span> (
+                {formatAge(minutesSince(bank.importedAt, now))}), built into the app. Quantities may be out of date;
+                prices are live. Paste a fresh bank below to replace it.
+              </>
+            ) : (
+              <>
+                <span className="font-bold">Bank imported {formatAge(minutesSince(bank.importedAt, now))}.</span>{" "}
+                Quantities may be out of date; paste a fresh bank to update.
+              </>
+            )}
+          </Notice>
+        </div>
+      )}
 
       <p className="mt-4 text-xs text-neutral-400 leading-relaxed">
         In RuneLite, install Bank Memory from the Plugin Hub, open its panel, right-click your current bank and choose
