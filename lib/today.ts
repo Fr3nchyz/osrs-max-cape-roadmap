@@ -91,6 +91,8 @@ export function suggestToday(i: TodayInput): TodaySuggestion {
           detail:
             top.source === "logged"
               ? "Your best logged rate. One focused block."
+              : top.source === "research"
+                ? "Best rate from your research. One focused block."
               : `Best planning rate right now. ${top.method.note}`,
           alongside,
         }
