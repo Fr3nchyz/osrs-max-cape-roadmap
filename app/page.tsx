@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import Plan from "./Plan";
 import SessionPlanner from "./SessionPlanner";
-import NextUp from "./NextUp";
+import Today from "./today/Today";
 import SkillTable from "./SkillTable";
 import { useGoals } from "./useGoals";
 import { useProgress } from "./useProgress";
@@ -457,7 +457,10 @@ export default function App() {
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
-          <NextUp skills={data} selections={selections} onPlan={() => setTab("now")} />
+          <Today
+            xpBySkill={Object.fromEntries(data.filter((s) => s.name !== "Overall").map((s) => [s.name, s.xp]))}
+            selections={selections}
+          />
         )}
 
         {tab === "dashboard" && dashboard && (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Compass, Feather, ListOrdered, Moon, Swords } from "lucide-react";
+import { Compass, Feather, ListOrdered, Moon, Swords } from "lucide-react";
 import { formatGp } from "@/lib/format";
 import type { FletchingCoverage } from "@/lib/companion/fletching";
 import type { NextAction } from "@/lib/companion/nextAction";
@@ -45,16 +45,12 @@ export default function NextBestAction({
   const unratedNames = unrated.filter((m) => !m.lowAttention).map((m) => m.name);
   return (
     <Card className={className} aria-labelledby="nba-title">
-      <CardTitle id="nba-title" icon={Compass} aside={STATE_LABEL[action.state]}>
-        Next best action
+      <CardTitle id="nba-title" icon={Compass} aside={`Stage: ${STATE_LABEL[action.state]}`}>
+        Options
       </CardTitle>
-
-      <div className="mt-4 rounded-2xl border border-yellow-600/40 bg-yellow-600/10 px-4 py-3.5">
-        <p className="flex items-center gap-2 text-base font-black text-white tracking-tight">
-          <ArrowRight className="w-4 h-4 text-yellow-500 shrink-0" aria-hidden /> {action.title}
-        </p>
-        <p className="mt-1 pl-6 text-xs text-neutral-300 leading-relaxed">{action.detail}</p>
-      </div>
+      <p className="mt-2 text-xs text-neutral-400">
+        <span className="font-bold text-neutral-300">{action.title}.</span> {action.detail}
+      </p>
 
       <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <div className="min-w-0">
@@ -75,7 +71,7 @@ export default function NextBestAction({
                       ? `Your rate over ${Number(r.stats!.hours.toFixed(1))}h logged`
                       : r.stats
                         ? `Planning low until 10h logged (${Number(r.stats.hours.toFixed(1))}h so far)`
-                        : "Planning low: no sessions logged yet"}
+                        : "Knowledge-base planning low"}
                   </span>
                 </span>
                 <span className="text-sm font-black text-white shrink-0">{formatGp(r.gpPerHour)}/hr</span>
@@ -83,8 +79,8 @@ export default function NextBestAction({
             ))}
           </ol>
           <p className="mt-2 text-[11px] text-neutral-500 leading-relaxed">
-            Ranked by conservative net GP/hour: the low end of the learning range until a method has 10 logged hours.
-            {unratedNames.length > 0 && <> Log {unratedNames.join(", ")} to rate them.</>}
+            Ranked by conservative net GP/hour: the low end of the knowledge base&apos;s learning range.
+            {unratedNames.length > 0 && <> No planning rate yet for {unratedNames.join(", ")}.</>}
             {noWilderness && " Wilderness methods are hidden."}
           </p>
 
@@ -108,7 +104,7 @@ export default function NextBestAction({
                           ~{formatGp(method.wikiModel.gpPerHour)}/hr <span className="text-neutral-600">wiki</span>
                         </span>
                       ) : (
-                        <span className="text-neutral-500">not logged</span>
+                        <span className="text-neutral-500">no figure</span>
                       )}
                     </span>
                   </li>
@@ -116,7 +112,7 @@ export default function NextBestAction({
               </ul>
               <p className="mt-2 text-[11px] text-neutral-500 leading-relaxed">
                 For low-energy blocks. Wiki figures assume their guide&apos;s setup (frost dragons: max melee gear;
-                crystal keys: GE volume you rarely get), so log a few trips before trusting them.
+                crystal keys: GE volume you rarely get), so expect less.
               </p>
             </>
           )}

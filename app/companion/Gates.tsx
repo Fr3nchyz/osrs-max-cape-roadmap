@@ -90,7 +90,7 @@ export default function Gates({ className = "", dt2Complete, onDt2Change, hiscor
       </div>
 
       <p className="mt-4 text-[11px] text-neutral-500 leading-relaxed">
-        Kill counts are lifetime totals. Your learning baseline comes from the session log below.
+        Kill counts are lifetime totals from the HiScores.
       </p>
     </Card>
   );

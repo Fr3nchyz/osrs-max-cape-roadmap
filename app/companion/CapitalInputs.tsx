@@ -117,7 +117,7 @@ export default function CapitalInputs({ className = "", state, update, bankActiv
       <div className="mt-5 space-y-2">
         <Toggle
           label="No Wilderness"
-          hint="Hide Wilderness methods from the session log and Next best action"
+          hint="Hide Wilderness methods from Today and Options"
           checked={state.noWilderness}
           onChange={(noWilderness) => update({ noWilderness })}
         />
