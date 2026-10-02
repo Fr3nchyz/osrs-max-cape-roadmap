@@ -24,7 +24,6 @@ import {
 import Plan from "./Plan";
 import SessionPlanner from "./SessionPlanner";
 import Today from "./today/Today";
-import Recap from "./today/Recap";
 import SkillTable from "./SkillTable";
 import { useGoals } from "./useGoals";
 import { useProgress } from "./useProgress";
@@ -451,7 +450,6 @@ export default function App() {
                 <SessionPlanner skills={data} />
               </div>
             </details>
-            <Recap xpBySkill={liveXp} selections={selections} />
           </>
         )}
 
