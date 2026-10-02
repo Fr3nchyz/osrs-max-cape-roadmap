@@ -77,17 +77,23 @@ export default function Today({ className = "", xpBySkill, selections }: Props) 
         Today
       </CardTitle>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Mode">
-        {TODAY_MODES.map((m) => {
-          const Icon = MODE_ICON[m.id];
-          return (
-            <Pill key={m.id} active={mode === m.id} onClick={() => setPicked(m.id)}>
-              <Icon className="w-3.5 h-3.5" aria-hidden /> {m.label}
-            </Pill>
-          );
-        })}
+      <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
+        <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2" role="group" aria-label="Mode">
+          {TODAY_MODES.map((m) => {
+            const Icon = MODE_ICON[m.id];
+            return (
+              <Pill key={m.id} active={mode === m.id} onClick={() => setPicked(m.id)}>
+                <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                <span className="sm:hidden" aria-hidden>
+                  {m.short}
+                </span>
+                <span className="max-sm:sr-only">{m.label}</span>
+              </Pill>
+            );
+          })}
+        </div>
         <span className="mx-1 h-5 w-px bg-neutral-800 hidden sm:block" aria-hidden />
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Time available">
+        <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-2" role="group" aria-label="Time available">
           {TODAY_MINUTES.map((m) => (
             <Pill key={m} active={minutes === m} onClick={() => setMinutes(m)}>
               {m >= 60 ? `${m / 60}h` : `${m}m`}
@@ -137,7 +143,7 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 border ${
+      className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 border ${
         active
           ? "bg-yellow-600 text-white border-yellow-500"
           : "bg-neutral-950 text-neutral-400 border-neutral-800 hover:text-neutral-200"

@@ -102,7 +102,7 @@ function ScenarioCard({ result, active, now }: { result: ScenarioResult; active:
       {funded ? (
         <p className="mt-4 text-sm font-bold text-neutral-300">Funded: no hours needed.</p>
       ) : (
-        <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3">
+        <dl className="mt-3 sm:mt-4 grid grid-cols-3 sm:grid-cols-2 gap-x-3 gap-y-3">
           <Stat label="Focused PvM" value={formatHours(result.focusedHours)} />
           <Stat label="Total gameplay" value={formatHours(result.totalHours)} />
           <Stat
@@ -119,9 +119,9 @@ function ScenarioCard({ result, active, now }: { result: ScenarioResult; active:
 
 function Stat({ label, value, sub, wide = false }: { label: string; value: string; sub?: string; wide?: boolean }) {
   return (
-    <div className={`min-w-0 ${wide ? "col-span-2" : ""}`}>
+    <div className={`min-w-0 ${wide ? "sm:col-span-2" : ""}`}>
       <dt className={LABEL}>{label}</dt>
-      <dd className="mt-0.5 text-xl font-black text-white tracking-tight">{value}</dd>
+      <dd className="mt-0.5 text-base sm:text-xl font-black text-white tracking-tight">{value}</dd>
       {sub && <dd className="text-[11px] text-neutral-500">{sub}</dd>}
     </div>
   );

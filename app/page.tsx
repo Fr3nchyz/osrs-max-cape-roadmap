@@ -376,7 +376,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
+    <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 pt-9 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Nav Header */}
         <AppHeader
@@ -442,7 +442,7 @@ export default function App() {
                 <span className="flex items-center gap-2">
                   <Play className="w-4 h-4 text-yellow-600" aria-hidden /> More skilling ideas for this session
                 </span>
-                <span className="text-[11px] font-bold text-neutral-500 normal-case tracking-normal group-open:hidden">
+                <span className="text-[11px] font-bold text-neutral-500 normal-case tracking-normal group-open:hidden max-sm:hidden">
                   Filter by platform, intensity and time
                 </span>
               </summary>

@@ -11,10 +11,10 @@ import type { RankedMethod } from "./companion/sessions";
 import type { NextMilestone } from "./maxOrder";
 
 export type TodayMode = "maxing" | "gp" | "bossing";
-export const TODAY_MODES: { id: TodayMode; label: string }[] = [
-  { id: "maxing", label: "Grind maxing" },
-  { id: "gp", label: "Earn GP" },
-  { id: "bossing", label: "Bossing / CAs" },
+export const TODAY_MODES: { id: TodayMode; label: string; short: string }[] = [
+  { id: "maxing", label: "Grind maxing", short: "Maxing" },
+  { id: "gp", label: "Earn GP", short: "GP" },
+  { id: "bossing", label: "Bossing / CAs", short: "Bossing" },
 ];
 export const TODAY_MINUTES = [15, 30, 60, 120] as const;
 

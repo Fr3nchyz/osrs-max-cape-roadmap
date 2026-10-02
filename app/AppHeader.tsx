@@ -41,26 +41,31 @@ export default function AppHeader({
         </div>
       </div>
 
-      <SectionNav />
+      {/* Below lg the switch and Refresh share a row; from lg they spread across the header. */}
+      <div className="flex items-center gap-2 sm:gap-3 lg:contents">
+        <SectionNav />
 
-      {onRefresh || actions ? (
-        <div className="flex items-center gap-3 bg-neutral-900/50 p-1.5 rounded-2xl border border-neutral-800/50 backdrop-blur-xl">
-          {actions}
-          {onRefresh && (
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={refreshing}
-              title="Reload live HiScores, prices and history on this page"
-              className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase whitespace-nowrap transition-all shadow-lg active:scale-95 disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden /> Refresh
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="hidden lg:block w-[1px]" aria-hidden />
-      )}
+        {onRefresh || actions ? (
+          <div className="flex items-center gap-2 sm:gap-3 bg-neutral-900/50 p-1 sm:p-1.5 rounded-2xl border border-neutral-800/50 backdrop-blur-xl">
+            {actions}
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={onRefresh}
+                disabled={refreshing}
+                aria-label="Refresh"
+                title="Reload live HiScores, prices and history on this page"
+                className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-white px-3 sm:px-5 py-2.5 rounded-xl text-xs font-black uppercase whitespace-nowrap transition-all shadow-lg active:scale-95 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+                <span className="max-sm:hidden">Refresh</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="hidden lg:block w-[1px]" aria-hidden />
+        )}
+      </div>
     </header>
   );
 }

@@ -27,7 +27,7 @@ export default function SectionNav() {
               href={s.href}
               aria-current={active ? "page" : undefined}
               aria-label={s.label}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition-all ${
                 active ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
               }`}
             >

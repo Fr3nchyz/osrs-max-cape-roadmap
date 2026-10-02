@@ -38,8 +38,8 @@ export default function StageLadder({ stage, className = "" }: { stage: FundingS
             <li
               key={id}
               aria-current={current ? "step" : undefined}
-              className={`rounded-2xl border px-3.5 py-3 ${
-                current ? "border-yellow-600/50 bg-yellow-600/10" : "border-neutral-800 bg-neutral-950/40"
+              className={`rounded-2xl border px-3.5 ${
+                current ? "py-3 border-yellow-600/50 bg-yellow-600/10" : "py-2 border-neutral-800 bg-neutral-950/40"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -53,7 +53,9 @@ export default function StageLadder({ stage, className = "" }: { stage: FundingS
                       <span className={`text-[10px] font-black uppercase tracking-wider ${cls}`}>{text}</span>
                     )}
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">{STAGES[id].when}</p>
+                  <p className={`text-[11px] text-neutral-500 ${current ? "mt-0.5" : "sr-only sm:not-sr-only sm:mt-0.5"}`}>
+                    {STAGES[id].when}
+                  </p>
                   {current && <p className="mt-2 text-sm text-neutral-200 leading-snug">{STAGES[id].action}</p>}
                 </div>
               </div>

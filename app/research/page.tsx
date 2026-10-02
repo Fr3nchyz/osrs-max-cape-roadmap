@@ -40,7 +40,7 @@ export default function ResearchPage() {
   const rateCount = Object.keys(RESEARCH_RATES).length;
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
+    <div className="min-h-screen bg-neutral-950 text-neutral-200 p-4 pt-9 lg:p-10 font-sans selection:bg-yellow-600 selection:text-white">
       <div className="max-w-7xl mx-auto space-y-6">
         <AppHeader icon={BookOpen} title="Research" subtitle="Claims checked against your account" />
 
