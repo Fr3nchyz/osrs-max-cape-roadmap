@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { CircleDot, Info, Timer } from "lucide-react";
 import { formatGp } from "@/lib/format";
-import { PVM_SHARE } from "@/lib/companion/goal";
 import type { ScenarioId, ScenarioResult } from "@/lib/companion/types";
 import { Card, CardTitle, LABEL, Notice, formatDay, formatHours } from "./ui";
 
@@ -10,6 +10,8 @@ type Props = {
   results: ScenarioResult[] | null;
   /** The knowledge base's scenario selection rule, from the session log. */
   active: { id: ScenarioId; reason: string };
+  /** Share of playtime for T-bow PvM (0-1); the rest is maxing. */
+  pvmShare: number;
   weeklyHours: number;
   weekdayHours: number;
   weekendHours: number;
@@ -19,7 +21,16 @@ type Props = {
 
 const hrs = (n: number) => `${Number(n.toFixed(2))}h`;
 
-export default function Scenarios({ results, active, weeklyHours, weekdayHours, weekendHours, ownsTbow, now }: Props) {
+export default function Scenarios({
+  results,
+  active,
+  pvmShare,
+  weeklyHours,
+  weekdayHours,
+  weekendHours,
+  ownsTbow,
+  now,
+}: Props) {
   return (
     <Card aria-labelledby="scenarios-title">
       <CardTitle
@@ -57,7 +68,12 @@ export default function Scenarios({ results, active, weeklyHours, weekdayHours, 
           </p>
           <p className="mt-1.5 pl-5.5 text-[11px] text-neutral-500">
             Focused hours are income-producing PvM at the scenario&apos;s rate. Total gameplay assumes{" "}
-            {Math.round(PVM_SHARE * 100)}% of your play is that PvM.
+            {Math.round(pvmShare * 100)}% of your play is that PvM; the other {Math.round((1 - pvmShare) * 100)}% (
+            {Number((weeklyHours * (1 - pvmShare)).toFixed(1))}h a week) is maxing time on the{" "}
+            <Link href="/" className="text-yellow-600 hover:text-yellow-500 hover:underline underline-offset-2">
+              Max Cape Roadmap
+            </Link>
+            .
           </p>
         </>
       )}

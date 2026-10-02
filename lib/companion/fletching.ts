@@ -111,3 +111,12 @@ export function fletchingXp(hiscores: unknown): number | null {
   const xp = entry?.xp;
   return typeof xp === "number" && Number.isFinite(xp) && xp >= 0 ? xp : null;
 }
+
+/**
+ * XP the stock pays for, capped at what's left to 99: Fletching the roadmap
+ * can count as downtime rather than dedicated hours.
+ */
+export function downtimeFletchingXp(currentXp: number, stock: BankItem[]): number {
+  const c = fletchingCoverage(currentXp, stock);
+  return Math.min(c.stockXp, c.xpTo99);
+}

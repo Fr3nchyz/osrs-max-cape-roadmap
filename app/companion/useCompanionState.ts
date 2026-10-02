@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { CHECKLIST, DEFAULT_STATE } from "@/lib/companion/goal";
+import { CHECKLIST, DEFAULT_STATE, clampPvmShare } from "@/lib/companion/goal";
 import type { BankImport, BankItem, ChecklistId, CompanionState, Session } from "@/lib/companion/types";
 
 export const COMPANION_STORAGE_KEY = "osrs-companion-fr3nchy";
@@ -92,6 +92,7 @@ export function mergeState(raw: unknown): CompanionState {
     sessions: mergeSessions(raw.sessions),
     customGpPerHour: amount("customGpPerHour"),
     noWilderness: flag("noWilderness"),
+    pvmShare: isNum(raw.pvmShare) ? clampPvmShare(raw.pvmShare) : DEFAULT_STATE.pvmShare,
   };
 }
 

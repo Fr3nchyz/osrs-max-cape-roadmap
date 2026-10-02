@@ -56,6 +56,7 @@ export const DEFAULT_STATE: CompanionState = {
   sessions: [],
   customGpPerHour: 0,
   noWilderness: true,
+  pvmShare: 0.6,
 };
 
 /**
@@ -114,11 +115,32 @@ export const SCENARIO_RATES: { id: ScenarioId; label: string; gpPerHour: number 
 ];
 
 /**
- * Share of gameplay that is income-producing PvM, used to turn focused PvM
- * hours into total gameplay hours. The scenario table says 60%; its weekly
- * allocation table sums to 65% PvM. We follow the scenario table.
+ * Default share of gameplay that is income-producing PvM, used to turn
+ * focused PvM hours into total gameplay hours (state.pvmShare overrides it).
+ * The scenario table says 60%; its weekly allocation table sums to 65% PvM.
+ * We follow the scenario table.
  */
 export const PVM_SHARE = 0.6;
+
+/** pvmShare kept inside [MIN, MAX] so neither the T-bow nor maxing gets zero time. */
+export const PVM_SHARE_MIN = 0.1;
+export const PVM_SHARE_MAX = 0.9;
+
+export function clampPvmShare(share: number): number {
+  return Number.isFinite(share) ? Math.min(PVM_SHARE_MAX, Math.max(PVM_SHARE_MIN, share)) : PVM_SHARE;
+}
+
+/** Weekly hours split between T-bow PvM and maxing. */
+export function weeklySplit(state: Pick<CompanionState, "weekdayHours" | "weekendHours" | "pvmShare">): {
+  totalHours: number;
+  pvmHours: number;
+  maxingHours: number;
+  pvmShare: number;
+} {
+  const totalHours = weeklyHours(state.weekdayHours, state.weekendHours);
+  const pvmShare = clampPvmShare(state.pvmShare);
+  return { totalHours, pvmHours: totalHours * pvmShare, maxingHours: totalHours * (1 - pvmShare), pvmShare };
+}
 
 /** A price older than this (since our server fetched it) fails the "price refreshed" check. */
 export const PRICE_FRESH_MINUTES = 15;
@@ -216,13 +238,15 @@ export function scenarios(
   gapGp: number,
   weekdayHours: number,
   weekendHours: number,
-  extra: { id: ScenarioId; label: string; gpPerHour: number }[] = [],
+  opts: { extra?: { id: ScenarioId; label: string; gpPerHour: number }[]; pvmShare?: number } = {},
 ): ScenarioResult[] {
   const gap = Math.max(0, gapGp);
   const perWeek = weeklyHours(weekdayHours, weekendHours);
+  const extra = opts.extra ?? [];
+  const pvmShare = clampPvmShare(opts.pvmShare ?? PVM_SHARE);
   return [...SCENARIO_RATES, ...extra.filter((e) => e.gpPerHour > 0)].map(({ id, label, gpPerHour }) => {
     const focusedHours = gap / gpPerHour;
-    const totalHours = focusedHours / PVM_SHARE;
+    const totalHours = focusedHours / pvmShare;
     return {
       id,
       label,

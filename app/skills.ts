@@ -259,6 +259,8 @@ export type MaxLine = {
   gpAtMax: number; // hours * supply gp (after grouping)
   trueAtMax: number; // hours * adjustedGp (after grouping)
   grouped?: "free" | "overlap";
+  /** XP done in downtime (Fletching from committed stock): needs no dedicated hours or GP. */
+  downtimeXp?: number;
 };
 
 export type MaxPlan = {
@@ -274,21 +276,24 @@ export type MaxPlan = {
 export function computeMaxPlan(
   skills: Skill[],
   selections: Record<string, number>,
-  baseline = DEFAULT_EARN_RATE
+  baseline = DEFAULT_EARN_RATE,
+  downtimeXp: Record<string, number> = {}
 ): MaxPlan {
   const active = skills.filter((s) => s.name !== "Overall" && !s.isMaxed);
 
   // Raw per-skill hours first (needed to derive the melee total before grouping Slayer).
+  // XP done in downtime (e.g. Fletching from bought stock) needs no dedicated hours.
   const raw = active.map((s) => {
     const ms = methodsFor(s.name);
     const method = ms[selections[s.name] || 0] || ms[0];
-    const hours = s.remainingXp / (method.rate || 50000);
-    return { skill: s, method, hours: isNaN(hours) ? 0 : hours };
+    const free = Math.min(s.remainingXp, Math.max(0, downtimeXp[s.name] ?? 0));
+    const hours = (s.remainingXp - free) / (method.rate || 50000);
+    return { skill: s, method, hours: isNaN(hours) ? 0 : hours, free };
   });
   const rawHours = (name: string) => raw.find((r) => r.skill.name === name)?.hours ?? 0;
   const meleeSum = rawHours("Attack") + rawHours("Strength") + rawHours("Defence");
 
-  const lines: MaxLine[] = raw.map(({ skill, method, hours }) => {
+  const lines: MaxLine[] = raw.map(({ skill, method, hours, free }) => {
     let h = hours;
     let grouped: MaxLine["grouped"];
     if (skill.name === "Hitpoints") {
@@ -306,6 +311,7 @@ export function computeMaxPlan(
       gpAtMax: h * method.gp,
       trueAtMax: h * adjustedGp(method, baseline),
       grouped,
+      downtimeXp: free > 0 ? free : undefined,
     };
   });
 

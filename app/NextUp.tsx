@@ -1,16 +1,43 @@
 "use client";
 
-import { Sparkles, ArrowRight, Smartphone, Monitor } from "lucide-react";
-import { closestWins, afkLabel, afkBadgeClass, platformLabel, ICON_MAP, type Skill } from "./skills";
+import { Sparkles, ArrowRight, Smartphone, Monitor, ListOrdered } from "lucide-react";
+import { closestWins, afkLabel, afkBadgeClass, platformLabel, methodsFor, ICON_MAP, type Skill } from "./skills";
+import { MAX_ORDER, nextMilestone } from "@/lib/maxOrder";
 
-// "Do this next" — the closest bite-sized win, framed to make the remaining grind feel achievable.
-export default function NextUp({ skills = [], onPlan }: { skills?: Skill[]; onPlan: () => void }) {
-  const win = closestWins(skills)[0];
-  if (!win) return null;
+// "Do this next" — the first unmet step of your maxing order; once that's done, the closest 99.
+export default function NextUp({
+  skills = [],
+  selections = {},
+  onPlan,
+}: {
+  skills?: Skill[];
+  selections?: Record<string, number>;
+  onPlan: () => void;
+}) {
+  const xp = Object.fromEntries(skills.map((s) => [s.name, s.xp]));
+  const step = skills.length ? nextMilestone(xp) : null;
 
-  const { skill, method, hours } = win;
+  let skill: Skill | undefined;
+  let target = 99;
+  let xpToGo: number;
+  let how: string | null = null;
+  if (step) {
+    skill = skills.find((s) => s.name === step.milestone.skill);
+    target = step.milestone.level;
+    xpToGo = step.xpToGo;
+    how = step.milestone.how;
+  } else {
+    const win = closestWins(skills)[0];
+    skill = win?.skill;
+    xpToGo = win?.skill.remainingXp ?? 0;
+  }
+  if (!skill) return null;
+
+  const ms = methodsFor(skill.name);
+  const method = ms[selections[skill.name] || 0] || ms[0];
+  const hours = xpToGo / (method.rate || 50000);
   const sessionXp = method.rate; // a 1-hour session
-  const pctOfRemaining = Math.min(100, (sessionXp / skill.remainingXp) * 100);
+  const pctOfRemaining = Math.min(100, (sessionXp / Math.max(1, xpToGo)) * 100);
   const mobile = platformLabel(method) === "Mobile";
 
   return (
@@ -22,11 +49,17 @@ export default function NextUp({ skills = [], onPlan }: { skills?: Skill[]; onPl
         <div className="min-w-0">
           <p className="text-[10px] font-black text-yellow-600 uppercase tracking-widest flex items-center gap-1.5">
             <Sparkles className="w-3 h-3" /> Do this next
+            {step && (
+              <span className="text-neutral-500 flex items-center gap-1">
+                · <ListOrdered className="w-3 h-3" /> step {step.index + 1} of {MAX_ORDER.length}
+              </span>
+            )}
           </p>
           <h3 className="text-lg font-black text-white tracking-tight leading-tight">
-            {skill.name} → 99 in ~{Math.ceil(hours)}h
+            {skill.name} → {target} in ~{Math.ceil(hours)}h
           </h3>
           <p className="text-[11px] text-neutral-400 mt-0.5">
+            {how ? `${how} · ` : ""}
             {method.name} · {(method.rate / 1000).toFixed(0)}k xp/h ·{" "}
             <span className={`font-black ${mobile ? "text-green-500" : "text-blue-400"}`}>
               {mobile ? <Smartphone className="inline w-3 h-3" /> : <Monitor className="inline w-3 h-3" />}{" "}

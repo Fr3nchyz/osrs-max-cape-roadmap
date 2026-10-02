@@ -8,8 +8,9 @@
  * logging session totals gives the same number without needing drop EVs.
  */
 
+import { SCENARIO_RATES } from "./goal";
 import type { PvmMethod } from "./methods";
-import type { MethodStats, ScenarioId, Session } from "./types";
+import type { CompanionState, MethodStats, ScenarioId, Session } from "./types";
 
 /** "Use the conservative scenario until a method has at least 10 logged hours." */
 export const LOGGED_HOURS_THRESHOLD = 10;
@@ -116,4 +117,25 @@ export function rankMethods(
   }
   ranked.sort((a, b) => b.gpPerHour - a.gpPerHour || a.method.name.localeCompare(b.method.name));
   return { ranked, unrated };
+}
+
+/**
+ * The GP/hour the plan expects you to earn: your custom rate if set, else
+ * your rolling logged rate once it exists and is positive, else the active
+ * scenario's rate. The roadmap uses it as the income maxing time gives up.
+ */
+export function planEarnRate(state: Pick<CompanionState, "sessions" | "customGpPerHour">): {
+  gpPerHour: number;
+  source: "custom" | "logged" | ScenarioId;
+  label: string;
+} {
+  if (state.customGpPerHour > 0) return { gpPerHour: state.customGpPerHour, source: "custom", label: "your custom rate" };
+  const stats = methodStats(state.sessions);
+  const rolling = rollingRate(state.sessions);
+  if (rolling !== null && rolling > 0 && stats.some((m) => m.qualified)) {
+    return { gpPerHour: rolling, source: "logged", label: "your logged rate" };
+  }
+  const active = activeScenario(stats, rolling);
+  const rate = SCENARIO_RATES.find((r) => r.id === active.id)!;
+  return { gpPerHour: rate.gpPerHour, source: active.id, label: `the ${rate.label.toLowerCase()} scenario` };
 }

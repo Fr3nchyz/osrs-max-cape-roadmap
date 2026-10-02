@@ -15,6 +15,10 @@ export interface PvmMethod {
   /** [low, high] once competent; null = no planning figure. */
   competent: [number, number] | null;
   note: string;
+  /** Needs little attention: fits low-energy or mobile blocks. */
+  lowAttention?: boolean;
+  /** OSRS Wiki money-making guide figure (GP/hour) and what it assumes; reference only, never ranked. */
+  wikiModel?: { gpPerHour: number; assumes: string; checked: string };
 }
 
 const M = 1_000_000;
@@ -110,6 +114,39 @@ export const PVM_METHODS: PvmMethod[] = [
     learner: null,
     competent: null,
     note: "Wilderness: budget PKer deaths into the log.",
+  },
+  {
+    id: "frost-dragons",
+    name: "Frost dragons",
+    wilderness: false,
+    requiresDt2: false,
+    learner: null,
+    competent: null,
+    note: "Low attention. Log a few trips to rate it with your gear.",
+    lowAttention: true,
+    wikiModel: { gpPerHour: 2_034_706, assumes: "138 kills/hr, off-task, max melee gear", checked: "2026-10-02" },
+  },
+  {
+    id: "adamant-dragons",
+    name: "Adamant dragons",
+    wilderness: false,
+    requiresDt2: false,
+    learner: null,
+    competent: null,
+    note: "Low attention. Log a few trips to rate it with your gear.",
+    lowAttention: true,
+    wikiModel: { gpPerHour: 1_758_768, assumes: "about 60 kills/hr", checked: "2026-10-02" },
+  },
+  {
+    id: "crystal-keys",
+    name: "Making crystal keys",
+    wilderness: false,
+    requiresDt2: false,
+    learner: null,
+    competent: null,
+    note: "Buy key halves, combine, sell. Limited by GE volume; test small first.",
+    lowAttention: true,
+    wikiModel: { gpPerHour: 2_180_000, assumes: "5,000 keys an hour, which GE volume rarely allows", checked: "2026-10-02" },
   },
   {
     id: "other",

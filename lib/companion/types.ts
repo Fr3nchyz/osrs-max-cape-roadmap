@@ -58,6 +58,11 @@ export interface CompanionState {
   customGpPerHour: number;
   /** Hide Wilderness methods from the method list and Next Best Action. */
   noWilderness: boolean;
+  /**
+   * Share of weekly playtime for T-bow PvM (0-1). The rest is maxing time,
+   * which the Max Cape Roadmap plans with.
+   */
+  pvmShare: number;
 }
 
 /** One logged PvM session. Net GP = loot - supplies - upkeep - deaths. */
@@ -167,7 +172,7 @@ export interface ScenarioResult {
   gpPerHour: number;
   /** gapGp / gpPerHour. */
   focusedHours: number;
-  /** focusedHours / PVM_SHARE. */
+  /** focusedHours / the PvM share of playtime. */
   totalHours: number;
   /** totalHours / weekly hours; null when weekly hours is 0. */
   weeks: number | null;

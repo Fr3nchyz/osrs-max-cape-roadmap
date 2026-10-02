@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import {
   Trophy,
@@ -28,6 +29,10 @@ import { useGoals } from "./useGoals";
 import { useProgress } from "./useProgress";
 import ProgressPanel from "./ProgressPanel";
 import SectionNav from "./SectionNav";
+import { useCompanionState } from "./companion/useCompanionState";
+import { weeklySplit } from "@/lib/companion/goal";
+import { planEarnRate } from "@/lib/companion/sessions";
+import { BASELINE_FLETCHING_STOCK, downtimeFletchingXp } from "@/lib/companion/fletching";
 import { projectDate } from "./progress";
 import {
   TRAINING_METHODS,
@@ -122,8 +127,12 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [orderType, setOrderType] = useState<"efficient" | "xp">("efficient");
-  const [hoursPerDay, setHoursPerDay] = useState(4);
-  const [earnRate, setEarnRate] = useState(DEFAULT_EARN_RATE);
+  // Time budget, PvM/maxing split and money rate are shared with the T-bow Companion.
+  const { state: plan, update: updatePlan } = useCompanionState();
+  const split = weeklySplit(plan);
+  const hoursPerDay = Number((split.maxingHours / 7).toFixed(2));
+  const earn = planEarnRate(plan);
+  const earnRate = earn.gpPerHour;
   const [showMaxed, setShowMaxed] = useState(false);
   const [mobileOnly, setMobileOnly] = useState(false);
   const [period, setPeriod] = useState<"week" | "month">("week");
@@ -166,8 +175,6 @@ export default function App() {
         const s = JSON.parse(raw) as Partial<StoredSettings>;
         if (s.methods) setSelections(s.methods);
         if (s.orderType) setOrderType(s.orderType);
-        if (typeof s.hoursPerDay === "number") setHoursPerDay(s.hoursPerDay);
-        if (typeof s.earnRate === "number") setEarnRate(s.earnRate);
         if (typeof s.mobileOnly === "boolean") setMobileOnly(s.mobileOnly);
         if (s.period === "week" || s.period === "month") setPeriod(s.period);
       }
@@ -270,10 +277,19 @@ export default function App() {
     persist({ orderType: type });
   };
 
+  // Fletching XP the committed stock pays for is done in downtime, not dedicated hours.
+  const fletchingXpNow = data.find((s) => s.name === "Fletching")?.xp ?? null;
+  const stockItems = plan.bank?.items ?? BASELINE_FLETCHING_STOCK;
+  const downtime = useMemo(() => {
+    const free: Record<string, number> = {};
+    if (fletchingXpNow !== null) free.Fletching = downtimeFletchingXp(fletchingXpNow, stockItems);
+    return free;
+  }, [fletchingXpNow, stockItems]);
+
   // Combat-linked maxing plan (HP free, Slayer overlaps the melee grind — no overcount).
   const maxPlan = useMemo(
-    () => (data.length ? computeMaxPlan(data, selections, earnRate) : null),
-    [data, selections, earnRate]
+    () => (data.length ? computeMaxPlan(data, selections, earnRate, downtime) : null),
+    [data, selections, earnRate, downtime]
   );
 
   const dashboard = useMemo(() => {
@@ -441,7 +457,7 @@ export default function App() {
 
         {/* Dashboard Section */}
         {tab === "dashboard" && dashboard && (
-          <NextUp skills={data} onPlan={() => setTab("now")} />
+          <NextUp skills={data} selections={selections} onPlan={() => setTab("now")} />
         )}
 
         {tab === "dashboard" && dashboard && (
@@ -596,46 +612,39 @@ export default function App() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center px-1">
                     <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                      <Hourglass className="w-3.5 h-3.5 text-neutral-400" /> Playtime
+                      <Hourglass className="w-3.5 h-3.5 text-neutral-400" /> Maxing share
                     </p>
-                    <span className="text-[10px] font-black text-white">{hoursPerDay}h / day</span>
+                    <span className="text-[10px] font-black text-white">{Math.round((1 - split.pvmShare) * 100)}% of play</span>
                   </div>
                   <input
                     type="range"
-                    min="0.5"
-                    max="16"
-                    step="0.5"
-                    value={hoursPerDay}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value);
-                      setHoursPerDay(v);
-                      persist({ hoursPerDay: v });
-                    }}
+                    min="10"
+                    max="90"
+                    step="5"
+                    value={Math.round((1 - split.pvmShare) * 100)}
+                    onChange={(e) => updatePlan({ pvmShare: 1 - parseFloat(e.target.value) / 100 })}
+                    aria-label="Maxing share of playtime"
                     className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-yellow-600"
                   />
+                  <p className="text-[10px] text-neutral-500 px-1">
+                    {Number(split.maxingHours.toFixed(1))}h a week ({hoursPerDay}h/day) of your {Number(split.totalHours.toFixed(1))}h.
+                    The rest goes to the{" "}
+                    <Link href="/companion" className="text-yellow-600 hover:text-yellow-500 underline-offset-2 hover:underline">
+                      T-bow
+                    </Link>
+                    .
+                  </p>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <div className="flex justify-between items-center px-1">
                     <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                      <Coins className="w-3.5 h-3.5 text-neutral-400" /> GP/h · semi-afk
+                      <Coins className="w-3.5 h-3.5 text-neutral-400" /> GP/h you give up
                     </p>
-                    <span className="text-[10px] font-black text-white">
-                      {earnRate === 0 ? "Off" : `${(earnRate / 1000000).toFixed(2)}M`}
-                    </span>
+                    <span className="text-[10px] font-black text-white">{(earnRate / 1000000).toFixed(2)}M</span>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="6000000"
-                    step="250000"
-                    value={earnRate}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value);
-                      setEarnRate(v);
-                      persist({ earnRate: v });
-                    }}
-                    className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-yellow-600"
-                  />
+                  <p className="text-[10px] text-neutral-500 px-1">
+                    From {earn.label} on the T-bow page. Weekly hours are set there too.
+                  </p>
                 </div>
               </div>
             </div>

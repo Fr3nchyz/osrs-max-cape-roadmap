@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { RefreshCw } from "lucide-react";
 import { formatAge, formatGp } from "@/lib/format";
 import {
+  clampPvmShare,
   computeFunding,
   evaluateChecklist,
   fundingStage,
@@ -12,7 +13,8 @@ import {
 } from "@/lib/companion/goal";
 import { valueBank } from "@/lib/companion/bank";
 import { BASELINE_FLETCHING_STOCK, fletchingCoverage, fletchingXp } from "@/lib/companion/fletching";
-import { availableMethods } from "@/lib/companion/methods";
+import { PVM_METHODS, availableMethods } from "@/lib/companion/methods";
+import { nextMilestone, xpFromHiscores } from "@/lib/maxOrder";
 import { nextAction } from "@/lib/companion/nextAction";
 import { activeScenario, methodStats, rankMethods, rollingRate } from "@/lib/companion/sessions";
 import type { ChecklistId, LatestPricesResponse, ScenarioId, TbowPriceResponse } from "@/lib/companion/types";
@@ -79,7 +81,7 @@ export default function CompanionPage() {
   if (rolling !== null) extraRates.push({ id: "logged", label: "Your rate", gpPerHour: rolling });
   if (state.customGpPerHour > 0) extraRates.push({ id: "custom", label: "Custom", gpPerHour: state.customGpPerHour });
   const scenarioResults = funding
-    ? scenarios(funding.gapGp, state.weekdayHours, state.weekendHours, extraRates)
+    ? scenarios(funding.gapGp, state.weekdayHours, state.weekendHours, { extra: extraRates, pvmShare: state.pvmShare })
     : null;
 
   const { ranked, unrated } = rankMethods(
@@ -94,6 +96,11 @@ export default function CompanionPage() {
     weekend: weekendDay,
     topMethod: ranked[0]?.method.name ?? null,
   });
+  const xpBySkill = xpFromHiscores(hiscores.data);
+  const maxingStep = hiscores.data ? nextMilestone(xpBySkill) : null;
+  const lowAttention = PVM_METHODS.filter((m) => m.lowAttention && !(state.noWilderness && m.wilderness)).map(
+    (method) => ({ method, stats: stats.find((s) => s.methodId === method.id) ?? null })
+  );
   const fXp = fletchingXp(hiscores.data);
   const fletching = fXp === null ? null : fletchingCoverage(fXp, bank ? bank.items : BASELINE_FLETCHING_STOCK);
 
@@ -157,6 +164,8 @@ export default function CompanionPage() {
               unrated={unrated}
               noWilderness={state.noWilderness}
               fletching={fletching}
+              maxingStep={maxingStep}
+              lowAttention={lowAttention}
               stockFromImport={bank !== null}
               hiscores={hiscores}
             />
@@ -164,6 +173,7 @@ export default function CompanionPage() {
             <Scenarios
               results={scenarioResults}
               active={active}
+              pvmShare={clampPvmShare(state.pvmShare)}
               weeklyHours={weeklyHours(state.weekdayHours, state.weekendHours)}
               weekdayHours={state.weekdayHours}
               weekendHours={state.weekendHours}
