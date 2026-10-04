@@ -89,5 +89,106 @@
       "Instant buy and sell loses ~86 gp per key."
     ],
     "sourceFile": "research/sources/2026-10-02-wiki-money-making.md"
+  },
+  {
+    "id": "2026-10-04-mining-volcanic-mine",
+    "addedAt": "2026-10-04",
+    "source": "chat-paste",
+    "creator": null,
+    "url": null,
+    "publishedAt": null,
+    "method": "Volcanic Mine (Mining 92-99)",
+    "methodId": null,
+    "claimedGpPerHour": 250000,
+    "assumptions": "85-95k xp/hr, 3-5 player team, crystal pickaxe",
+    "checkedGpPerHour": 0,
+    "personalGpPerHour": null,
+    "status": "INFLATED",
+    "notes": [
+      "XP: wiki table gives 79-94k at 95-99 by pickaxe; 85-95k needs a crystal pickaxe. fr3nchy has a dragon pickaxe: expect ~80-84k xp/hr.",
+      "GP: wiki says no significant profit (points and ores only); the 250k claim is unsupported."
+    ],
+    "sourceFile": "research/sources/2026-10-04-mining-93-99.md"
+  },
+  {
+    "id": "2026-10-04-mining-3t-granite",
+    "addedAt": "2026-10-04",
+    "source": "chat-paste",
+    "creator": null,
+    "url": null,
+    "publishedAt": null,
+    "method": "3-tick granite (Mining 92-99)",
+    "methodId": null,
+    "claimedGpPerHour": 0,
+    "assumptions": "115-125k xp/hr with herb+tar tick manipulation, Varrock 2+, celestial ring, prospector kit",
+    "checkedGpPerHour": 0,
+    "personalGpPerHour": null,
+    "status": "HIGH_RISK",
+    "notes": [
+      "XP checks out: wiki rate is built on ~126k at 99; a bit lower below 99.",
+      "Fragile only in execution: needs tick manipulation and constant clicking. fr3nchy owns the gear."
+    ],
+    "sourceFile": "research/sources/2026-10-04-mining-93-99.md"
+  },
+  {
+    "id": "2026-10-04-mining-gem-rocks",
+    "addedAt": "2026-10-04",
+    "source": "chat-paste",
+    "creator": null,
+    "url": null,
+    "publishedAt": null,
+    "method": "Gem rocks, Shilo Village (Mining 92-99)",
+    "methodId": null,
+    "claimedGpPerHour": 650000,
+    "assumptions": "55-65k xp/hr, charged glory, gem bag",
+    "checkedGpPerHour": 300000,
+    "personalGpPerHour": null,
+    "status": "INFLATED",
+    "notes": [
+      "GP: ~319 gp per gem at live prices; 60k xp = ~920 gems = ~295k/hr, 3-tick max (1,650 gems) ~526k/hr. 650k is not reachable.",
+      "XP is understated: wiki has 70-75k without tick manipulation and 107-110k with it.",
+      "Needs the Medium Karamja Diary (not Hard). Gem bag costs 100 golden nuggets from Motherlode Mine; fr3nchy already has a gem sack."
+    ],
+    "sourceFile": "research/sources/2026-10-04-mining-93-99.md"
+  },
+  {
+    "id": "2026-10-04-mining-amethyst",
+    "addedAt": "2026-10-04",
+    "source": "chat-paste",
+    "creator": null,
+    "url": null,
+    "publishedAt": null,
+    "method": "Amethyst mining (Mining 92-99)",
+    "methodId": null,
+    "claimedGpPerHour": 262000,
+    "assumptions": "20-23k xp/hr, 80-100 amethyst/hr, expert mining gloves",
+    "checkedGpPerHour": 263000,
+    "personalGpPerHour": null,
+    "status": "VERIFIED",
+    "notes": [
+      "Wiki: 80-100 amethyst/hr x 240 xp; live price 2,925 x 90 = ~263k/hr.",
+      "Expert gloves cost 180 unidentified minerals (~10-12 h iron); fr3nchy already owns them."
+    ],
+    "sourceFile": "research/sources/2026-10-04-mining-93-99.md"
+  },
+  {
+    "id": "2026-10-04-mining-shooting-stars",
+    "addedAt": "2026-10-04",
+    "source": "chat-paste",
+    "creator": null,
+    "url": null,
+    "publishedAt": null,
+    "method": "Shooting Stars (Mining 92-99)",
+    "methodId": null,
+    "claimedGpPerHour": 90000,
+    "assumptions": "25-30k xp/hr, one click per 7 min layer",
+    "checkedGpPerHour": null,
+    "personalGpPerHour": null,
+    "status": "UNVERIFIED",
+    "notes": [
+      "XP: wiki says ~30k/hr with a dragon pickaxe at 90+; each layer depletes in a fixed 7 min. Rate ignores the wait between stars (one per ~90 min per world).",
+      "The 90k gp/hr (stardust shop) was not checked."
+    ],
+    "sourceFile": "research/sources/2026-10-04-mining-93-99.md"
   }
 ]

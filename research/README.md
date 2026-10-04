@@ -61,3 +61,4 @@ When fr3nchy pastes a transcript or a summary and says "add to research":
 
 - `sources/2026-09-30-knowledge-base.md`: the Economic & Strategy Knowledge Base v1.0 (full text + audit notes)
 - `sources/2026-10-02-wiki-money-making.md`: frost dragons, adamant dragons, crystal keys
+- `sources/2026-10-04-mining-93-99.md`: Mining 93-99 method comparison (VM, 3-tick granite, gem rocks, amethyst, Shooting Stars)
