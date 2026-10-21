@@ -127,8 +127,14 @@ export function periodStats(
 // --- Daily max-hours for the current calendar week ----------------------------------------------
 export type DayBar = { day: number; label: string; hours: number | null; known: boolean };
 
-export function weekDays(points: XpPoint[], now: number, selections: Record<string, number>): DayBar[] {
-  const ws = startOfWeek(now);
+// Mon–Sun bars for the week starting at `weekStart` (defaults to the current week).
+export function weekDays(
+  points: XpPoint[],
+  now: number,
+  selections: Record<string, number>,
+  weekStart = startOfWeek(now)
+): DayBar[] {
+  const ws = weekStart;
   const first = points[0]?.at ?? now;
   const out: DayBar[] = [];
   for (let i = 0; i < 7; i++) {
@@ -150,6 +156,61 @@ export function weekDays(points: XpPoint[], now: number, selections: Record<stri
     out.push({ day: d0, label, hours: Math.max(0, hoursLeft(from, selections) - hoursLeft(to, selections)), known: true });
   }
   return out;
+}
+
+// --- Weekly velocity -----------------------------------------------------------------------------
+export type WeekPoint = {
+  start: number; // Monday 00:00 local
+  end: number; // next Monday, or now for the current week
+  current: boolean; // the week in progress
+  hours: number; // max-time done
+  xp: number;
+  levels: number;
+  top: string | null; // most-trained skill
+  known: boolean; // history covers the whole week
+};
+
+// The last `weeks` calendar weeks (oldest first), the current one last.
+export function weeklySeries(
+  points: XpPoint[],
+  now: number,
+  selections: Record<string, number>,
+  weeks = 12
+): WeekPoint[] {
+  const thisWeek = startOfWeek(now);
+  const out: WeekPoint[] = [];
+  for (let i = weeks - 1; i >= 0; i--) {
+    const start = addDays(thisWeek, -7 * i);
+    const end = i === 0 ? now : addDays(start, 7);
+    const st = periodStats(points, start, end, selections);
+    const known = !!st && !st.partial;
+    out.push({
+      start,
+      end,
+      current: i === 0,
+      hours: known ? st!.hours : 0,
+      xp: known ? st!.xp : 0,
+      levels: known ? st!.levels : 0,
+      top: known ? st!.top[0]?.name ?? null : null,
+      known,
+    });
+  }
+  return out;
+}
+
+// Average of the full weeks in `ws` (skips unknown ones); null when none.
+export function averageWeek(ws: WeekPoint[], key: "hours" | "xp" | "levels"): number | null {
+  const full = ws.filter((w) => w.known && !w.current);
+  return full.length ? full.reduce((a, w) => a + w[key], 0) / full.length : null;
+}
+
+// Mon/Tue check-ins land on a nearly empty week, so default the view to last week until Wednesday.
+export function preferLastWeek(now: number): boolean {
+  return (new Date(now).getDay() + 6) % 7 < 2;
+}
+// Same for the month: the first week of a month opens on last month.
+export function preferLastMonth(now: number): boolean {
+  return new Date(now).getDate() <= 7;
 }
 
 // --- Burn-down ----------------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CalendarCheck2 } from "lucide-react";
-import { startOfWeek } from "../progress";
+import { preferLastWeek, startOfWeek } from "../progress";
 import { useCompanionState } from "../companion/useCompanionState";
 import { Card, CardTitle, LABEL, Loading } from "../companion/ui";
 import { weeklySplit } from "@/lib/companion/goal";
@@ -30,7 +30,8 @@ export default function Recap({ className = "", xpBySkill, selections }: Props) 
   const { state } = useCompanionState();
   const history = useHistory();
   const [now] = useState(() => Date.now());
-  const [which, setWhich] = useState<"last" | "this">("this");
+  // Mon/Tue check-ins open on last week's full recap; this week is barely started.
+  const [which, setWhich] = useState<"last" | "this">(() => (preferLastWeek(now) ? "last" : "this"));
   const split = weeklySplit(state);
 
   const thisWeek = startOfWeek(now);

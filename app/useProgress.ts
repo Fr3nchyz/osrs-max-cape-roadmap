@@ -5,6 +5,7 @@ import type { Skill } from "./skills";
 import {
   periodStats,
   weekDays,
+  weeklySeries,
   burnDown,
   paceAt,
   xpAt,
@@ -17,6 +18,7 @@ import {
   type XpPoint,
   type PeriodStats,
   type DayBar,
+  type WeekPoint,
   type BurnPoint,
   type Pace,
 } from "./progress";
@@ -36,6 +38,8 @@ export type Progress = {
   month: PeriodStats | null;
   lastMonth: PeriodStats | null;
   days: DayBar[];
+  lastWeekDays: DayBar[];
+  weeks: WeekPoint[]; // last 12 calendar weeks, current last
   burn: BurnPoint[];
   pace: Pace | null; // last 28 days, ending now
   paceWeekAgo: Pace | null; // last 28 days, ending 7 days ago
@@ -147,6 +151,8 @@ export function useProgress(data: Skill[], selections: Record<string, number>): 
       month: stats(ms, now),
       lastMonth: stats(addMonths(ms, -1), ms),
       days: weekDays(points, now, selections),
+      lastWeekDays: weekDays(points, now, selections, addDays(ws, -7)),
+      weeks: weeklySeries(points, now, selections, 12),
       burn: burnDown(points, now, selections),
       pace: paceAt(points, now, selections),
       paceWeekAgo: paceAt(points, now - 7 * DAY_MS, selections),

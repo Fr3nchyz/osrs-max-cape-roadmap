@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { periodStats, startOfWeek, type XpPoint } from "../progress";
+import { migrateSelections } from "../skills";
 
 export type Point = {
   day: string;
@@ -86,11 +87,13 @@ export function useWeek(selections: Record<string, number>): WeekSoFar {
 export function readRoadmapSelections(): Record<string, number> {
   try {
     const raw = localStorage.getItem("osrs-maxcape-fr3nchy");
-    const methods = raw ? (JSON.parse(raw) as { methods?: unknown }).methods : null;
+    const saved = raw ? (JSON.parse(raw) as { methods?: unknown; methodsVersion?: number }) : null;
+    const methods = saved?.methods;
     if (typeof methods !== "object" || methods === null) return {};
-    return Object.fromEntries(
+    const valid = Object.fromEntries(
       Object.entries(methods as Record<string, unknown>).filter((e): e is [string, number] => Number.isInteger(e[1]))
     );
+    return migrateSelections(valid, saved?.methodsVersion ?? 1);
   } catch {
     return {};
   }
