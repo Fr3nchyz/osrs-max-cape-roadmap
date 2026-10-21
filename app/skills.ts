@@ -4,7 +4,8 @@
 // AFK intensity is the master attribute for this account: fr3nchy plays almost entirely on
 // mobile (the iOS app), logging in/out constantly, so "how AFK is it" matters more than raw XP/h.
 //   afk 1 = set-and-forget   2 = light attention   3 = active   4 = sweaty / tick-perfect
-// Within each skill, methods are ordered most-AFK-first, so index 0 is the default pick.
+// Within each skill, methods are ordered most-AFK-first, so index 0 is the default pick — except where
+// index 0 is the method fr3nchy is actually doing right now (see METHODS_VERSION).
 //
 // Rates/xpPerAction/afkTime for the AFK-skilling methods come from the OSRS wiki's
 // "Guide:AFK Skilling Methods" table (Exp/AFK = xp per AFK cycle).
@@ -53,6 +54,10 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
     { name: "Camphor Tree", rate: 70000, gp: 308940, afk: 2, xpPerAction: 2333, afkTime: "2:00", setup: { location: "Anywhere" } },
   ],
   Fletching: [
+    // fr3nchy's current method (index 0): fletching his amethyst arrowtip stock into arrows. Wiki: 202.5 xp per
+    // set of 15 (13.5 each), 2 ticks a set; Make-All does 10 sets (2,025 xp) per click, so re-click every ~12s.
+    // GP at GE 2026-10-21: arrow ~117-125 vs tips ~137-140 + headless ~11 -> about -33 gp per arrow after tax.
+    { name: "Amethyst Arrows (from arrowtips)", rate: 520000, gp: -1270000, afk: 3, tag: "meta", xpPerAction: 2025, afkTime: "0:12", setup: { location: "Anywhere" } },
     { name: "Unstrung Bows (Magic Longbow)", rate: 247050, gp: -43200, afk: 2, tag: "meta", xpPerAction: 2223, afkTime: "0:32", setup: { location: "Bank" } },
     { name: "Redwood Shields", rate: 193000, gp: -885856, afk: 2, xpPerAction: 2509, afkTime: "0:47", setup: { location: "Bank" } },
     { name: "Battlestaves", rate: 143000, gp: -334169, afk: 2, xpPerAction: 1954, afkTime: "0:49", setup: { location: "Bank" } },
@@ -71,6 +76,9 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
     { name: "Gold Bars (BF/Goldsmith)", rate: 350000, gp: -300000, afk: 3, setup: { location: "Blast Furnace", travelMins: 1 } },
   ],
   Mining: [
+    // fr3nchy's current method (index 0), still learning it. Wiki (dragon pickaxe): 79k xp/h at 90, 81k at 95 in a
+    // coordinated team; 75k allows for learning. ~13.6k+ points/h, worth up to ~11.6 gp each in rewards.
+    { name: "Volcanic Mine (Team)", rate: 75000, gp: 120000, afk: 3, tag: "meta", setup: { location: "Fossil Island", travelMins: 3 }, links: [{ label: "OSRS Wiki", url: "https://oldschool.runescape.wiki/w/Volcanic_Mine" }] },
     // Calcified rocks (Cam Torum, req 41) — 50k/h fully-AFK, beats MLM. fr3nchy also likes MLM.
     { name: "Calcified Rocks (Cam Torum)", rate: 50000, gp: 0, afk: 1, tag: "meta", xpPerAction: 1625, afkTime: "0:35", setup: { location: "Cam Torum", travelMins: 2 } },
     { name: "MLM (High Level)", rate: 54000, gp: 250000, afk: 1, tag: "good", setup: { location: "Motherlode Mine", travelMins: 1 } },
@@ -78,6 +86,8 @@ export const TRAINING_METHODS: Record<string, Method[]> = {
     { name: "Gemstones (Relaxed)", rate: 55016, gp: 450000, afk: 2, setup: { location: "Shilo gem rocks", travelMins: 2 } },
     { name: "Amethyst Crystals", rate: 24000, gp: 322700, afk: 2, xpPerAction: 780, afkTime: "1:57", setup: { location: "Mining Guild", travelMins: 2 } },
     { name: "Nickel Rocks", rate: 22000, gp: 396630, afk: 2, xpPerAction: 306, afkTime: "0:50", setup: { location: "Cam Torum", travelMins: 2 } },
+    // Wiki solo capping method: 45-50k xp/h, ~13.6k points/h.
+    { name: "Volcanic Mine (Solo)", rate: 47500, gp: 120000, afk: 3, setup: { location: "Fossil Island", travelMins: 3 } },
   ],
   Herblore: [
     { name: "Stackable Secondary Pots (Antivenom)", rate: 330000, gp: -3214750, afk: 2, tag: "meta", xpPerAction: 2842, afkTime: "0:31", setup: { location: "Bank" } },
@@ -332,6 +342,15 @@ export function computeMaxPlan(
     lines: sorted,
     byName,
   };
+}
+
+// Saved method picks are list indices. Bump this when methods are inserted, and migrate old picks.
+//   v2 (2026-10-21): Amethyst Arrows (Fletching) and Volcanic Mine (Mining) inserted at index 0 as his
+//   current methods, so saved Fletching/Mining picks reset to them.
+export const METHODS_VERSION = 2;
+export function migrateSelections(methods: Record<string, number>, version = 1): Record<string, number> {
+  if (version >= 2) return methods;
+  return { ...methods, Fletching: 0, Mining: 0 };
 }
 
 // Methods for a skill, always non-empty.

@@ -41,6 +41,8 @@ import {
   MAX_TOTAL_LEVEL,
   DEFAULT_EARN_RATE,
   ICON_MAP,
+  METHODS_VERSION,
+  migrateSelections,
   type Skill,
 } from "./skills";
 
@@ -115,6 +117,7 @@ type StoredSettings = {
   earnRate: number;
   mobileOnly: boolean;
   period: "week" | "month";
+  methodsVersion: number;
 };
 
 export default function App() {
@@ -171,7 +174,14 @@ export default function App() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const s = JSON.parse(raw) as Partial<StoredSettings>;
-        if (s.methods) setSelections(s.methods);
+        if (s.methods) {
+          const version = s.methodsVersion ?? 1;
+          const methods = migrateSelections(s.methods, version);
+          setSelections(methods);
+          if (version < METHODS_VERSION) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...s, methods, methodsVersion: METHODS_VERSION }));
+          }
+        }
         if (s.orderType) setOrderType(s.orderType);
         if (typeof s.mobileOnly === "boolean") setMobileOnly(s.mobileOnly);
         if (s.period === "week" || s.period === "month") setPeriod(s.period);
@@ -193,6 +203,7 @@ export default function App() {
             earnRate: DEFAULT_EARN_RATE,
             mobileOnly: false,
             period: "week",
+            methodsVersion: METHODS_VERSION,
           };
       localStorage.setItem(
         STORAGE_KEY,

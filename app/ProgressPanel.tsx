@@ -1,9 +1,19 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { CalendarDays, CalendarRange, TrendingDown, Flag, ArrowUp, ArrowDown, Award } from "lucide-react";
+import { CalendarDays, CalendarRange, TrendingDown, Flag, ArrowUp, ArrowDown, Award, Gauge } from "lucide-react";
 import { ICON_MAP, type Skill } from "./skills";
-import { milestones, projectDate, type PeriodStats, type BurnPoint, type DayBar } from "./progress";
+import {
+  milestones,
+  projectDate,
+  averageWeek,
+  preferLastWeek,
+  preferLastMonth,
+  type PeriodStats,
+  type BurnPoint,
+  type DayBar,
+  type WeekPoint,
+} from "./progress";
 import type { Progress } from "./useProgress";
 
 const fmtXp = (n: number) =>
@@ -177,6 +187,400 @@ function BurnChart({ burn }: { burn: BurnPoint[] }) {
   );
 }
 
+// Two-option pill toggle (Last / This).
+function Toggle<T extends string>({ value, options, onChange, label: aria }: { value: T; options: [T, string][]; onChange: (v: T) => void; label: string }) {
+  return (
+    <div className="inline-flex gap-0.5 bg-neutral-950 border border-neutral-800 rounded-lg p-0.5" role="group" aria-label={aria}>
+      {options.map(([v, text]) => (
+        <button
+          key={v}
+          type="button"
+          aria-pressed={value === v}
+          onClick={() => onChange(v)}
+          className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all ${
+            value === v ? "bg-neutral-800 text-yellow-500" : "text-neutral-500 hover:text-neutral-300"
+          }`}
+        >
+          {text}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// "+12% vs …" for a finished period (no per-day scaling needed).
+function Versus({ now, prev, unit }: { now: number; prev: number | null; unit: string }) {
+  if (prev === null || prev <= 0) return null;
+  const pct = ((now - prev) / prev) * 100;
+  const up = pct >= 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-black font-mono ${up ? "text-green-500" : "text-red-400"}`}>
+      {up ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+      {Math.abs(pct).toFixed(0)}% <span className="text-neutral-600 font-bold">vs {unit}</span>
+    </span>
+  );
+}
+
+const range = (a: number, b: number) => `${fmtDate(a)} – ${fmtDate(b - 1)}`;
+
+function TopSkills({ stats, n = 3 }: { stats: PeriodStats | null; n?: number }) {
+  const top = (stats?.top ?? []).slice(0, n);
+  if (!top.length) return null;
+  return (
+    <p className="text-[10px] text-neutral-500 font-mono truncate">
+      Top:{" "}
+      {top.map((g, i) => (
+        <span key={g.name}>
+          {i > 0 && " · "}
+          {ICON_MAP[g.name]} {g.name} <span className="text-neutral-300">+{fmtXp(g.xp)}</span>
+          {g.levels > 0 && <span className="text-green-500"> +{g.levels}lv</span>}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+function WeekCard({ progress, hoursPerDay }: { progress: Progress; hoursPerDay: number }) {
+  const { week, lastWeek, days, lastWeekDays, weeks, now } = progress;
+  const lastHasData = !!lastWeek && !lastWeek.partial;
+  const [view, setView] = useState<"last" | "this">(() => (preferLastWeek(now) && lastHasData ? "last" : "this"));
+  const target = hoursPerDay * 7;
+  const prior = weeks.length >= 3 ? weeks[weeks.length - 3] : null; // the week before last
+  const avg4 = averageWeek(weeks.slice(-5, -1), "hours"); // 4 full weeks before this one
+
+  if (view === "last") {
+    const hours = lastWeek?.hours ?? 0;
+    const hit = hours >= target;
+    return (
+      <div className={`lg:col-span-5 ${card} space-y-4`}>
+        <div className="flex items-center justify-between gap-2">
+          <p className={label}>
+            <CalendarDays className="w-3 h-3 text-yellow-600" /> Last week
+            <span className="text-neutral-600 normal-case tracking-normal font-bold">
+              {lastWeek ? range(lastWeek.start, lastWeek.start + 7 * 86_400_000) : ""}
+            </span>
+          </p>
+          <Toggle value={view} onChange={setView} label="Week" options={[["last", "Last"], ["this", "This"]]} />
+        </div>
+        {!lastHasData ? (
+          <p className="text-[11px] text-neutral-500">No history covering all of last week yet.</p>
+        ) : (
+          <>
+            <div>
+              <div className="flex items-baseline justify-between">
+                <p className="font-mono font-black text-white leading-none">
+                  <span className="text-3xl text-yellow-500">{fmtH(hours)}</span>
+                  <span className="text-sm text-neutral-500"> / {fmtH(target)} target</span>
+                </p>
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
+                    hit ? "bg-green-600/15 text-green-500 border-green-700/40" : "bg-neutral-800 text-neutral-400 border-neutral-700"
+                  }`}
+                >
+                  {hit ? "Target hit" : `${fmtH(target - hours)} short`}
+                </span>
+              </div>
+              <div className="h-1.5 bg-neutral-950 rounded-full overflow-hidden mt-2">
+                <div className="h-full bg-gradient-to-r from-yellow-700 to-yellow-400" style={{ width: `${Math.min(100, (hours / Math.max(0.1, target)) * 100)}%` }} />
+              </div>
+              <p className="text-[10px] text-neutral-500 mt-1.5 font-mono">
+                +{fmtXp(lastWeek!.xp)} xp · +{lastWeek!.levels} lv
+                {lastWeek!.new99s.length > 0 && <span className="text-yellow-500"> · 99 {lastWeek!.new99s.join(", ")}!</span>}
+              </p>
+              <div className="flex flex-wrap gap-x-3 mt-1">
+                <Versus now={hours} prev={prior?.known ? prior.hours : null} unit="the week before" />
+                <Versus now={hours} prev={avg4} unit="4-wk avg" />
+              </div>
+            </div>
+            <WeekBars days={lastWeekDays} target={hoursPerDay} now={now} />
+            <TopSkills stats={lastWeek} />
+          </>
+        )}
+      </div>
+    );
+  }
+
+  const weekHours = week?.hours ?? 0;
+  const dayOfWeek = ((new Date(now).getDay() + 6) % 7) + 1; // Mon = 1
+  const onTrack = weekHours >= hoursPerDay * dayOfWeek;
+  const weekElapsed = week ? (now - week.since) / 86_400_000 : 0;
+  return (
+    <div className={`lg:col-span-5 ${card} space-y-4`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className={label}>
+          <CalendarDays className="w-3 h-3 text-yellow-600" /> This week
+          <span className="text-neutral-600 normal-case tracking-normal font-bold">
+            {week?.partial ? `since ${fmtDate(week.since)}` : `since Mon ${fmtDate(week?.start ?? now)}`}
+          </span>
+        </p>
+        <Toggle value={view} onChange={setView} label="Week" options={[["last", "Last"], ["this", "This"]]} />
+      </div>
+      <div>
+        <div className="flex items-baseline justify-between">
+          <p className="font-mono font-black text-white leading-none">
+            <span className="text-3xl text-yellow-500">{fmtH(weekHours)}</span>
+            <span className="text-sm text-neutral-500"> / {fmtH(target)} target</span>
+          </p>
+          <span
+            className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
+              onTrack ? "bg-green-600/15 text-green-500 border-green-700/40" : "bg-neutral-800 text-neutral-400 border-neutral-700"
+            }`}
+          >
+            {onTrack ? "On track" : `${fmtH(Math.max(0, hoursPerDay * dayOfWeek - weekHours))} behind`}
+          </span>
+        </div>
+        <div className="h-1.5 bg-neutral-950 rounded-full overflow-hidden mt-2">
+          <div className="h-full bg-gradient-to-r from-yellow-700 to-yellow-400" style={{ width: `${Math.min(100, (weekHours / Math.max(0.1, target)) * 100)}%` }} />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 mt-1.5">
+          <p className="text-[10px] text-neutral-500 font-mono">
+            +{fmtXp(week?.xp ?? 0)} xp · +{week?.levels ?? 0} lv
+            {week && week.new99s.length > 0 && <span className="text-yellow-500"> · 99 {week.new99s.join(", ")}!</span>}
+          </p>
+          <Delta now={weekHours} elapsedDays={weekElapsed} prev={lastWeek} prevDays={7} unit="week" />
+        </div>
+      </div>
+      <WeekBars days={days} target={hoursPerDay} now={now} />
+      {lastHasData && (
+        <button
+          type="button"
+          onClick={() => setView("last")}
+          className="w-full text-left text-[10px] font-mono text-neutral-500 hover:text-neutral-300 border-t border-neutral-800 pt-2"
+        >
+          Last week: <span className="text-neutral-300">{fmtH(lastWeek!.hours)}</span> · +{fmtXp(lastWeek!.xp)} xp · +{lastWeek!.levels} lv →
+        </button>
+      )}
+      <p className="text-[9px] text-neutral-600">Max-time = how much your time-to-max went down, with your selected methods.</p>
+    </div>
+  );
+}
+
+function MonthCard({ progress }: { progress: Progress }) {
+  const { month, lastMonth, now } = progress;
+  const lastHasData = !!lastMonth && !lastMonth.partial;
+  const [view, setView] = useState<"last" | "this">(() => (preferLastMonth(now) && lastHasData ? "last" : "this"));
+  const shown = view === "last" ? lastMonth : month;
+  const monthElapsed = month ? (now - month.since) / 86_400_000 : 0;
+  const lastMonthDays = lastMonth && month ? (month.start - lastMonth.start) / 86_400_000 : 30;
+  const perDay = (st: PeriodStats | null, d: number) => (st && d > 0 ? st.hours / d : 0);
+
+  return (
+    <div className={`lg:col-span-4 ${card} space-y-3`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className={label}>
+          <CalendarRange className="w-3 h-3 text-yellow-600" />
+          {fmtDate(shown?.start ?? now, { month: "long" })}
+          {view === "this" && month?.partial && (
+            <span className="text-neutral-600 normal-case tracking-normal font-bold">since {fmtDate(month.since)}</span>
+          )}
+        </p>
+        <Toggle value={view} onChange={setView} label="Month" options={[["last", "Last"], ["this", "This"]]} />
+      </div>
+      {view === "last" && !lastHasData ? (
+        <p className="text-[11px] text-neutral-500">No history covering all of last month yet.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { k: "Levels", v: `+${shown?.levels ?? 0}` },
+              { k: "Max-time", v: fmtH(shown?.hours ?? 0) },
+              { k: "XP", v: `+${fmtXp(shown?.xp ?? 0)}` },
+            ].map((c) => (
+              <div key={c.k} className="bg-neutral-950 border border-neutral-800 rounded-xl px-2.5 py-2">
+                <p className="text-[8px] font-black text-neutral-600 uppercase tracking-widest">{c.k}</p>
+                <p className="text-lg font-black font-mono text-white leading-none mt-1">{c.v}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-neutral-500 font-mono">
+            {view === "last" ? (
+              <>
+                {fmtH(perDay(lastMonth, lastMonthDays))}/day · {fmtH(perDay(lastMonth, lastMonthDays) * 7)}/week avg
+              </>
+            ) : (
+              <span className="inline-flex flex-wrap items-center gap-x-2">
+                {fmtH(perDay(month, monthElapsed))}/day so far
+                <Delta now={month?.hours ?? 0} elapsedDays={monthElapsed} prev={lastMonth} prevDays={lastMonthDays} unit="month" />
+              </span>
+            )}
+          </p>
+          {shown && shown.new99s.length > 0 && (
+            <p className="text-[11px] font-black text-yellow-500 flex items-center gap-1.5">
+              <Award className="w-3.5 h-3.5" /> 99 reached: {shown.new99s.map((n) => `${ICON_MAP[n] ?? ""} ${n}`).join(" · ")}
+            </p>
+          )}
+          <div className="space-y-1.5">
+            <p className="text-[8px] font-black text-neutral-600 uppercase tracking-widest">Most trained</p>
+            {(shown?.top ?? []).slice(0, 4).map((g) => (
+              <div key={g.name} className="flex items-center gap-2">
+                <span className="w-24 text-[10px] font-bold text-neutral-400 uppercase truncate">
+                  {ICON_MAP[g.name]} {g.name}
+                </span>
+                <div className="flex-1 h-1.5 bg-neutral-950 rounded-full overflow-hidden">
+                  <div className="h-full bg-yellow-600" style={{ width: `${(g.xp / (shown!.top[0].xp || 1)) * 100}%` }} />
+                </div>
+                <span className="w-20 text-right text-[10px] font-mono text-neutral-400">
+                  +{fmtXp(g.xp)}
+                  {g.levels > 0 && <span className="text-green-500"> +{g.levels}</span>}
+                </span>
+              </div>
+            ))}
+            {!shown?.top.length && <p className="text-[10px] text-neutral-600">No XP gained {view === "last" ? "last" : "yet this"} month.</p>}
+          </div>
+          {view === "this" && lastHasData && (
+            <button
+              type="button"
+              onClick={() => setView("last")}
+              className="w-full text-left text-[10px] text-neutral-500 hover:text-neutral-300 font-mono border-t border-neutral-800 pt-2"
+            >
+              {fmtDate(lastMonth!.start, { month: "long" })}: +{lastMonth!.levels} lv · {fmtH(lastMonth!.hours)} · +{fmtXp(lastMonth!.xp)} xp →
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+type Metric = "hours" | "xp" | "levels";
+const METRIC_FMT: Record<Metric, (n: number) => string> = {
+  hours: fmtH,
+  xp: (n) => fmtXp(n),
+  levels: (n) => `${Math.round(n * 10) / 10} lv`,
+};
+
+// Week-by-week velocity: one bar per calendar week, with a rolling 4-week average line.
+function VelocityCard({ weeks, target }: { weeks: WeekPoint[]; target: number }) {
+  const [metric, setMetric] = useState<Metric>("hours");
+  const [hover, setHover] = useState<number | null>(null);
+  const known = weeks.filter((w) => w.known);
+  if (known.length < 2) return null;
+
+  const val = (w: WeekPoint) => w[metric];
+  // Rolling 4-week average over full weeks, drawn for each finished week.
+  const rolling = weeks.map((_, i) => {
+    if (weeks[i].current) return null;
+    const win = weeks.slice(Math.max(0, i - 3), i + 1).filter((w) => w.known);
+    return win.length >= 2 ? win.reduce((a, w) => a + val(w), 0) / win.length : null;
+  });
+  const top = Math.max(...weeks.map(val), ...(metric === "hours" ? [target] : []), 0.0001) * 1.15;
+  const recent = averageWeek(weeks.slice(-5, -1), metric);
+  const before = averageWeek(weeks.slice(-9, -5), metric);
+  const best = known.filter((w) => !w.current).reduce<WeekPoint | null>((b, w) => (!b || val(w) > val(b) ? w : b), null);
+  const n = weeks.length;
+  const xOf = (i: number) => ((i + 0.5) / n) * 100;
+  const yOf = (v: number) => 100 - (v / top) * 100;
+  const linePts = rolling
+    .map((v, i) => (v === null ? null : `${xOf(i)},${yOf(v)}`))
+    .filter(Boolean) as string[];
+
+  return (
+    <div className={`${card} space-y-3`}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <p className={label}>
+          <Gauge className="w-3 h-3 text-yellow-600" /> Weekly velocity · last {n} weeks
+        </p>
+        <Toggle value={metric} onChange={setMetric} label="Metric" options={[["hours", "Max-time"], ["xp", "XP"], ["levels", "Levels"]]} />
+      </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[10px] font-mono">
+        {recent !== null && (
+          <span className="text-neutral-400">
+            Last 4 wks avg <span className="text-white font-black">{METRIC_FMT[metric](recent)}/wk</span>
+          </span>
+        )}
+        {recent !== null && before !== null && <Versus now={recent} prev={before} unit="the 4 weeks before" />}
+        {best && (
+          <span className="text-neutral-400">
+            Best <span className="text-yellow-500 font-black">{METRIC_FMT[metric](val(best))}</span>{" "}
+            <span className="text-neutral-600">wk of {fmtDate(best.start)}</span>
+          </span>
+        )}
+      </div>
+
+      <div className="relative">
+        <div className="relative h-32 flex items-end gap-1 border-b border-neutral-800">
+          {metric === "hours" && (
+            <div
+              className="absolute left-0 right-0 border-t border-dashed border-yellow-700/60 pointer-events-none"
+              style={{ bottom: `${(target / top) * 100}%` }}
+            >
+              <span className="absolute -top-3.5 left-0 text-[8px] font-mono text-yellow-700">{fmtH(target)}/wk target</span>
+            </div>
+          )}
+          {weeks.map((w, i) => (
+            <div
+              key={w.start}
+              className="flex-1 h-full flex items-end cursor-default"
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => setHover(hover === i ? null : i)}
+            >
+              <div
+                className={`w-full rounded-t ${
+                  !w.known ? "" : w.current ? "bg-yellow-700/40 border border-dashed border-yellow-600/70 border-b-0" : "bg-yellow-600"
+                } ${hover === i ? "brightness-125" : ""}`}
+                style={{ height: w.known ? `max(${(val(w) / top) * 100}%, 2px)` : 0 }}
+              />
+            </div>
+          ))}
+          {linePts.length >= 2 && (
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+              <polyline points={linePts.join(" ")} fill="none" stroke="#fafafa" strokeOpacity={0.7} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+        <div className="flex gap-1 mt-1">
+          {weeks.map((w, i) => (
+            <span key={w.start} className={`flex-1 text-center text-[8px] font-mono ${w.current ? "text-yellow-500" : "text-neutral-600"}`}>
+              {i % 2 === n % 2 || w.current ? fmtDate(w.start, { month: "numeric", day: "numeric" }) : ""}
+            </span>
+          ))}
+        </div>
+        {hover !== null && weeks[hover] && (
+          <div
+            className="absolute top-0 bg-neutral-950 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-neutral-300 whitespace-nowrap pointer-events-none z-10 space-y-0.5"
+            style={{
+              left: `${xOf(hover)}%`,
+              transform: xOf(hover) > 60 ? "translateX(calc(-100% - 8px))" : "translateX(8px)",
+            }}
+          >
+            <p className="text-neutral-500">
+              {range(weeks[hover].start, weeks[hover].current ? weeks[hover].end + 1 : weeks[hover].end)}
+              {weeks[hover].current && " (so far)"}
+            </p>
+            {weeks[hover].known ? (
+              <>
+                <p className="text-white font-black">{fmtH(weeks[hover].hours)} max-time</p>
+                <p>
+                  +{fmtXp(weeks[hover].xp)} xp · +{weeks[hover].levels} lv
+                </p>
+                {weeks[hover].top && <p>Top: {ICON_MAP[weeks[hover].top!]} {weeks[hover].top}</p>}
+                {rolling[hover] !== null && <p className="text-neutral-500">4-wk avg {METRIC_FMT[metric](rolling[hover]!)}</p>}
+              </>
+            ) : (
+              <p>No history for this week</p>
+            )}
+          </div>
+        )}
+      </div>
+      <p className="text-[9px] text-neutral-600 flex flex-wrap gap-x-3">
+        <span>
+          <span className="inline-block w-2 h-2 rounded-sm bg-yellow-600 align-middle mr-1" />
+          full week
+        </span>
+        <span>
+          <span className="inline-block w-2 h-2 rounded-sm border border-dashed border-yellow-600 align-middle mr-1" />
+          this week so far
+        </span>
+        <span>
+          <span className="inline-block w-3 h-0.5 bg-neutral-300 align-middle mr-1" />
+          4-week average
+        </span>
+      </p>
+    </div>
+  );
+}
+
 type Props = {
   progress: Progress;
   skills: Skill[];
@@ -188,15 +592,8 @@ type Props = {
 };
 
 export default function ProgressPanel({ progress, skills, selections, hoursPerDay, totalHours, currentTotal, maxTotal }: Props) {
-  const { week, lastWeek, month, lastMonth, days, burn, pace, paceWeekAgo, hoursWeekAgo } = progress;
+  const { burn, pace, paceWeekAgo, hoursWeekAgo } = progress;
   const now = progress.now;
-  const weekTarget = hoursPerDay * 7;
-  const weekHours = week?.hours ?? 0;
-  const dayOfWeek = ((new Date(now).getDay() + 6) % 7) + 1; // Mon = 1
-  const onTrack = weekHours >= hoursPerDay * dayOfWeek;
-  const weekElapsed = week ? (now - week.since) / 86_400_000 : 0;
-  const monthElapsed = month ? (now - month.since) / 86_400_000 : 0;
-  const lastMonthDays = lastMonth && month ? (month.start - lastMonth.start) / 86_400_000 : 30;
 
   const rate = pace && pace.hoursPerDay > 0.01 ? pace.hoursPerDay : hoursPerDay;
   const usingPace = rate !== hoursPerDay;
@@ -213,98 +610,8 @@ export default function ProgressPanel({ progress, skills, selections, hoursPerDa
   return (
     <section className="space-y-3">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        {/* This week */}
-        <div className={`lg:col-span-5 ${card} space-y-4`}>
-          <div className="flex items-center justify-between">
-            <p className={label}>
-              <CalendarDays className="w-3 h-3 text-yellow-600" /> This week
-              <span className="text-neutral-600 normal-case tracking-normal font-bold">
-                {week?.partial ? `since ${fmtDate(week.since)}` : `since Mon ${fmtDate(week?.start ?? now)}`}
-              </span>
-            </p>
-            <Delta now={weekHours} elapsedDays={weekElapsed} prev={lastWeek} prevDays={7} unit="week" />
-          </div>
-          <div>
-            <div className="flex items-baseline justify-between">
-              <p className="font-mono font-black text-white leading-none">
-                <span className="text-3xl text-yellow-500">{fmtH(weekHours)}</span>
-                <span className="text-sm text-neutral-500"> / {fmtH(weekTarget)} target</span>
-              </p>
-              <span
-                className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
-                  onTrack ? "bg-green-600/15 text-green-500 border-green-700/40" : "bg-neutral-800 text-neutral-400 border-neutral-700"
-                }`}
-              >
-                {onTrack ? "On track" : `${fmtH(Math.max(0, hoursPerDay * dayOfWeek - weekHours))} behind`}
-              </span>
-            </div>
-            <div className="h-1.5 bg-neutral-950 rounded-full overflow-hidden mt-2">
-              <div className="h-full bg-gradient-to-r from-yellow-700 to-yellow-400" style={{ width: `${Math.min(100, (weekHours / Math.max(0.1, weekTarget)) * 100)}%` }} />
-            </div>
-            <p className="text-[10px] text-neutral-500 mt-1.5 font-mono">
-              +{fmtXp(week?.xp ?? 0)} xp · +{week?.levels ?? 0} lv
-              {week && week.new99s.length > 0 && <span className="text-yellow-500"> · 99 {week.new99s.join(", ")}!</span>}
-            </p>
-          </div>
-          <WeekBars days={days} target={hoursPerDay} now={now} />
-          <p className="text-[9px] text-neutral-600">
-            Max-time = how much your time-to-max went down, with your selected methods.
-          </p>
-        </div>
-
-        {/* This month */}
-        <div className={`lg:col-span-4 ${card} space-y-3`}>
-          <div className="flex items-center justify-between">
-            <p className={label}>
-              <CalendarRange className="w-3 h-3 text-yellow-600" />
-              {fmtDate(month?.start ?? now, { month: "long" })}
-              {month?.partial && (
-                <span className="text-neutral-600 normal-case tracking-normal font-bold">since {fmtDate(month.since)}</span>
-              )}
-            </p>
-            <Delta now={month?.hours ?? 0} elapsedDays={monthElapsed} prev={lastMonth} prevDays={lastMonthDays} unit="month" />
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { k: "Levels", v: `+${month?.levels ?? 0}` },
-              { k: "Max-time", v: fmtH(month?.hours ?? 0) },
-              { k: "XP", v: `+${fmtXp(month?.xp ?? 0)}` },
-            ].map((c) => (
-              <div key={c.k} className="bg-neutral-950 border border-neutral-800 rounded-xl px-2.5 py-2">
-                <p className="text-[8px] font-black text-neutral-600 uppercase tracking-widest">{c.k}</p>
-                <p className="text-lg font-black font-mono text-white leading-none mt-1">{c.v}</p>
-              </div>
-            ))}
-          </div>
-          {month && month.new99s.length > 0 && (
-            <p className="text-[11px] font-black text-yellow-500 flex items-center gap-1.5">
-              <Award className="w-3.5 h-3.5" /> 99 reached: {month.new99s.map((n) => `${ICON_MAP[n] ?? ""} ${n}`).join(" · ")}
-            </p>
-          )}
-          <div className="space-y-1.5">
-            <p className="text-[8px] font-black text-neutral-600 uppercase tracking-widest">Most trained</p>
-            {(month?.top ?? []).slice(0, 4).map((g) => (
-              <div key={g.name} className="flex items-center gap-2">
-                <span className="w-24 text-[10px] font-bold text-neutral-400 uppercase truncate">
-                  {ICON_MAP[g.name]} {g.name}
-                </span>
-                <div className="flex-1 h-1.5 bg-neutral-950 rounded-full overflow-hidden">
-                  <div className="h-full bg-yellow-600" style={{ width: `${(g.xp / (month!.top[0].xp || 1)) * 100}%` }} />
-                </div>
-                <span className="w-20 text-right text-[10px] font-mono text-neutral-400">
-                  +{fmtXp(g.xp)}
-                  {g.levels > 0 && <span className="text-green-500"> +{g.levels}</span>}
-                </span>
-              </div>
-            ))}
-            {!month?.top.length && <p className="text-[10px] text-neutral-600">No XP gained yet this month.</p>}
-          </div>
-          {lastMonth && !lastMonth.partial && (
-            <p className="text-[10px] text-neutral-600 font-mono border-t border-neutral-800 pt-2">
-              {fmtDate(lastMonth.start, { month: "long" })}: +{lastMonth.levels} lv · {fmtH(lastMonth.hours)} · +{fmtXp(lastMonth.xp)} xp
-            </p>
-          )}
-        </div>
+        <WeekCard progress={progress} hoursPerDay={hoursPerDay} />
+        <MonthCard progress={progress} />
 
         {/* Milestones */}
         <div className={`lg:col-span-3 ${card} space-y-3`}>
@@ -336,6 +643,8 @@ export default function ProgressPanel({ progress, skills, selections, hoursPerDa
           </p>
         </div>
       </div>
+
+      <VelocityCard weeks={progress.weeks} target={hoursPerDay * 7} />
 
       {/* Burn-down */}
       <div className={`${card} space-y-3`}>
